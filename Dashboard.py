@@ -3,17 +3,16 @@ import pandas as pd
 import plotly.express as px
 import calendar
 
-afspraken2020 = pd.read_excel("data/afspraken_2020.xlsx")
-afspraken2021 = pd.read_excel("data/afspraken_2021.xlsx")
-afspraken2022 = pd.read_excel("data/afspraken_2022.xlsx")
-afspraken2023 = pd.read_excel("data/afspraken_2023.xlsx")
-afspraken2024 = pd.read_excel("data/afspraken_2024.xlsx")
+afspraken2020 = pd.read_excel('./data/afspraken 2020.xlsx') 
+afspraken2021 = pd.read_excel('./data/afspraken 2021.xlsx')
+afspraken2022 = pd.read_excel('./data/afspraken 2022.xlsx')
+afspraken2023 = pd.read_excel('./data/afspraken 2023.xlsx')
+afspraken2024 = pd.read_excel('./data/afspraken 2024.xlsx')
 
     # Samenvoegen van alle data
 afspraken_all = pd.concat([afspraken2020, afspraken2021, afspraken2022, afspraken2023, afspraken2024], ignore_index=True)
 
-
-factuur = pd.read_excel("data/factuurregels_2020-2024.xlsx")
+factuur = pd.read_excel('./data/factuurregels_2020-2024.xlsx')
 factuur = factuur[['clientcode', 'totaalbedrag', 'toegewezen_bedrag', 'status', 'factuurdatum', 'debiteur']]
 factuur["factuurdatum"] = pd.to_datetime(factuur["factuurdatum"], dayfirst=True)
 factuur = factuur[factuur["status"] == "toegewezen"]
