@@ -5,39 +5,19 @@ import plotly.express as px
 # Streamlit titel
 st.title("Aantal afspraken per maand per jaar")
 
-# Data inlezen
-jaren = [2020, 2021, 2022, 2023, 2024]
-bestanden = [f"afspraken {jaar}.xlsx" for jaar in jaren]
+afspraken2020 = pd.read_excel('afspraken 2020.xlsx')
+afspraken2021 = pd.read_excel('afspraken 2021.xlsx')
+afspraken2022 = pd.read_excel('afspraken 2022.xlsx')
+afspraken2023 = pd.read_excel('afspraken 2023.xlsx')
+afspraken2024 = pd.read_excel('afspraken 2024.xlsx')
+afspraken = pd.concat([afspraken2020, afspraken2021, afspraken2022, afspraken2023, afspraken2024], ignore_index=True)
 
-# Lijst om dataframes op te slaan
-df_lijst = []
-
-# Inlezen van de Excel-bestanden
-for jaar, bestand in zip(jaren, bestanden):
-    df = pd.read_excel(bestand)
-    df['datum'] = pd.to_datetime(df['datum'], dayfirst=True)
-    df['maand'] = df['datum'].dt.strftime('%B')
-    df['jaar'] = jaar
-    df_lijst.append(df)
-
-# Data samenvoegen
-df_all = pd.concat(df_lijst)
-
-# Aantal afspraken per maand per jaar tellen
-df_groep = df_all.groupby(['jaar', 'maand']).size().reset_index(name='aantal')
-
-# Maanden sorteren op kalender volgorde
-maand_volgorde = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
-df_groep['maand'] = pd.Categorical(df_groep['maand'], categories=maand_volgorde, ordered=True)
-df_groep = df_groep.sort_values(['jaar', 'maand'])
-
-# Plot maken
-fig = px.line(df_groep, x='maand', y='aantal', color='jaar', markers=True, title='Aantal afspraken per maand per jaar')
-fig.update_layout(xaxis_title='Maand', yaxis_title='Aantal afspraken', legend_title='Jaar')
-
-# Plot tonen in Streamlit
-st.plotly_chart(fig)
-
+factuur = pd.read_excel('./data/factuurregels_2020-2024.xlsx')
+factuur = factuur[['clientcode', 'totaalbedrag', 'toegewezen_bedrag', 'status', 'factuurdatum', 'debiteur']]
+factuur["factuurdatum"] = pd.to_datetime(factuur["factuurdatum"], dayfirst=True)
+factuur = factuur[factuur["status"] == "toegewezen"]
+factuur["jaar"] = factuur["factuurdatum"].dt.year
+factuur["maand"] = factuur["factuurdatum"].dt.month
 
 
 
