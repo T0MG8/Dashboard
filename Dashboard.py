@@ -6,11 +6,11 @@ import plotly.express as px
 st.title("Aantal afspraken per maand per jaar")
 
 # afspraken2020 = pd.read_excel('afspraken 2020.xlsx')
-afspraken2021 = pd.read_excel('Data/afspraken 2021.xlsx')
-afspraken2022 = pd.read_excel('Data/afspraken 2022.xlsx')
-afspraken2023 = pd.read_excel('Data/afspraken 2023.xlsx')
-afspraken2024 = pd.read_excel('Data/afspraken 2024.xlsx')
-afspraken = pd.concat([afspraken2021, afspraken2022, afspraken2023, afspraken2024], ignore_index=True)
+# afspraken2021 = pd.read_excel('Data/afspraken 2021.xlsx')
+# afspraken2022 = pd.read_excel('Data/afspraken 2022.xlsx')
+# afspraken2023 = pd.read_excel('Data/afspraken 2023.xlsx')
+# afspraken2024 = pd.read_excel('Data/afspraken 2024.xlsx')
+# afspraken = pd.concat([afspraken2021, afspraken2022, afspraken2023, afspraken2024], ignore_index=True)
 
 factuur = pd.read_excel('./data/factuurregels_2020-2024.xlsx')
 factuur = factuur[['clientcode', 'totaalbedrag', 'toegewezen_bedrag', 'status', 'factuurdatum', 'debiteur']]
