@@ -1,6 +1,6 @@
 import pandas as pd
 import streamlit as st
-from plotly import graph_objects as go
+import plotly.graph_objects as go
 
 # Data inladen
 afspraken2020 = pd.read_excel('./Data/afspraken 2020.xlsx') 
