@@ -1,5 +1,6 @@
 import pandas as pd
 import streamlit as st
+import plotly
 import plotly.graph_objects as go
 
 # Data inladen
@@ -53,6 +54,3 @@ fig.update_layout(
 
 # Streamlit plotten
 st.plotly_chart(fig)
-
-
-
