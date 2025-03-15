@@ -3,11 +3,11 @@ import streamlit as st
 import plotly.graph_objects as go
 
 # Data inladen
-afspraken2020 = pd.read_excel('./Data/afspraken 2020.xlsx') 
-afspraken2021 = pd.read_excel('./Data/afspraken 2021.xlsx')
-afspraken2022 = pd.read_excel('./Data/afspraken 2022.xlsx')
-afspraken2023 = pd.read_excel('./Data/afspraken 2023.xlsx')
-afspraken2024 = pd.read_excel('./Data/afspraken 2024.xlsx')
+afspraken2020 = pd.read_excel('afspraken 2020.xlsx') 
+afspraken2021 = pd.read_excel('afspraken 2021.xlsx')
+afspraken2022 = pd.read_excel('afspraken 2022.xlsx')
+afspraken2023 = pd.read_excel('afspraken 2023.xlsx')
+afspraken2024 = pd.read_excel('afspraken 2024.xlsx')
 
 # Lijst van dataframes en corresponderende jaartallen
 dataframes = {
