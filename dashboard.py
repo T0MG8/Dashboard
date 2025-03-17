@@ -2,9 +2,6 @@ import pandas as pd
 import streamlit as st
 import plotly.graph_objects as go
 import plotly.express as px
-import folium
-from streamlit_folium import st_folium
-from folium import plugins
 import calendar
 
 # Sidebar met tabbladen
@@ -133,12 +130,4 @@ if pagina == 'Afspraken':
 
 elif pagina == 'Kaart':
     # Initialize a map centered on a specific location (e.g., London in this case)
-    m = folium.Map(location=[51.517544, -0.010726], zoom_start=10)
-
-    # Optional: Add a marker to the map (for example, using some custom data)
-    folium.Marker([51.517544, -0.010726], popup="Example Location").add_to(m)
-
-    # You can add more markers or other folium features here as needed.
-
-    # Display the map in Streamlit using st_folium
-    st_folium(m, width=725)
+    st.title("Later meer")
