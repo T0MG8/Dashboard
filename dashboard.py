@@ -25,17 +25,13 @@ factuur = load_data_factuur()
 # Maandnamen lijst voor slider
 maanden = ['Januari', 'Februari', 'Maart', 'April', 'Mei', 'Juni', 'Juli', 'Augustus', 'September', 'Oktober', 'November', 'December']
 
-# Slider voor maandselectie, hier geef je de maandnamen als labels
-start_month, end_month = st.slider(
-    "Selecteer de maanden", 
-    min_value=1, 
-    max_value=12, 
-    value=(1, 12), 
-    step=1, 
-    format="Month %d", 
-    key="maand_slider",
-    help="Selecteer een periode van maanden van het jaar"
-)
+# Selectbox voor maandselectie, hier geef je de maandnamen als labels
+start_month = st.selectbox("Selecteer de beginmaand", maanden, index=0)
+end_month = st.selectbox("Selecteer de eindmaand", maanden, index=11)
+
+# Zet de maandnamen om naar maandnummers (Januari = 1, Februari = 2, etc.)
+start_month_number = maanden.index(start_month) + 1
+end_month_number = maanden.index(end_month) + 1
 
 # Lijst van dataframes en corresponderende jaartallen
 dataframes = {
@@ -55,7 +51,7 @@ for year, df in dataframes.items():
     df['maand'] = df['datum'].dt.month
 
     # Filter op geselecteerde maanden
-    filtered_df = df[(df['maand'] >= start_month) & (df['maand'] <= end_month)]
+    filtered_df = df[(df['maand'] >= start_month_number) & (df['maand'] <= end_month_number)]
 
     maand_telling = filtered_df['maand'].value_counts().sort_index()
 
@@ -91,7 +87,7 @@ factuur['jaar'] = factuur['factuurdatum'].dt.year
 factuur['maand'] = factuur['factuurdatum'].dt.month
 
 # Filter op de geselecteerde maanden
-filtered_factuur = factuur[(factuur['maand'] >= start_month) & (factuur['maand'] <= end_month)]
+filtered_factuur = factuur[(factuur['maand'] >= start_month_number) & (factuur['maand'] <= end_month_number)]
 
 # Groepeer per jaar en maand en sommeer het toegewezen bedrag
 maandelijkse_totals = filtered_factuur.groupby(['jaar', 'maand'])['toegewezen_bedrag'].sum().reset_index()
