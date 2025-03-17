@@ -33,14 +33,10 @@ start_month, end_month = st.slider(
     value=(1, 12), 
     step=1, 
     format="Month %d", 
-    key="maand_slider", 
+    key="maand_slider",
     help="Selecteer een periode van maanden van het jaar",
-    value=(1, 12)
+    marks={i: maand for i, maand in enumerate(maanden, 1)}  # Weergave van maandnamen
 )
-
-# Zet de maandnummers om naar maandnamen
-start_month_name = maanden[start_month - 1]
-end_month_name = maanden[end_month - 1]
 
 # Lijst van dataframes en corresponderende jaartallen
 dataframes = {
