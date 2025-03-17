@@ -86,8 +86,7 @@ fig1 = px.line(maandelijkse_totals,
               x='maand', 
               y='toegewezen_bedrag', 
               color='jaar',
-              markers=True,
-              title="Toegewezen Bedrag per Maand per Jaar")
+              markers=True)
 
 fig1.update_layout(
     xaxis=dict(tickmode='array', tickvals=list(range(1, 13)), 
