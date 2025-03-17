@@ -29,27 +29,24 @@ maanden = ['Januari', 'Februari', 'Maart', 'April', 'Mei', 'Juni', 'Juli', 'Augu
 import streamlit as st
 import calendar
 
-# Maak een lijst van maandnamen
-maanden = [calendar.month_name[i] for i in range(1, 13)]
+# Een functie om de maandnummers om te zetten naar maandnamen
+def maandnaam(num):
+    return calendar.month_name[num]
 
-# Maak een slider waarbij de waarde de maandnummers zijn
+# Gebruik een slider voor de maandselectie
 start_month, end_month = st.slider(
     "Selecteer de maanden", 
     min_value=1, 
     max_value=12, 
     value=(1, 12), 
     step=1, 
-    format="Month %d", 
     key="maand_slider",
     help="Selecteer een periode van maanden van het jaar"
 )
 
-# Zet de maandnummers om naar maandnamen
-start_month_name = maanden[start_month - 1]
-end_month_name = maanden[end_month - 1]
+# Toon de geselecteerde maanden als maandnamen
+st.write(f"Geselecteerde periode: {maandnaam(start_month)} tot {maandnaam(end_month)}")
 
-# Toon de geselecteerde maandnamen
-st.write(f"Geselecteerde maanden: {start_month_name} tot {end_month_name}")
 
 # Lijst van dataframes en corresponderende jaartallen
 dataframes = {
