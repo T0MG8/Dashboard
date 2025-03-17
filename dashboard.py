@@ -32,19 +32,6 @@ maanden = ['Januari', 'Februari', 'Maart', 'April', 'Mei', 'Juni', 'Juli', 'Augu
 # Maak een mapping van maandnummer naar maandnaam
 maand_mapping = {i + 1: maanden[i] for i in range(len(maanden))}
 
-# Gebruik select_slider in plaats van slider
-start_month_name, end_month_name = st.select_slider(
-    "Selecteer de maanden", 
-    options=maanden, 
-    value=(maanden[0], maanden[11]), 
-    key="maand_slider",
-    help="Selecteer een periode van maanden van het jaar"
-)
-
-# Zet de geselecteerde maandnamen om naar maandnummers
-start_month = maanden.index(start_month_name) + 1  # Maandnaam naar maandnummer
-end_month = maanden.index(end_month_name) + 1      # Maandnaam naar maandnummer
-
 # Lijst van dataframes en corresponderende jaartallen
 dataframes = {
     2020: afspraken2020,
@@ -55,6 +42,19 @@ dataframes = {
 }
 
 if pagina == 'Afspraken':
+    # Gebruik select_slider in plaats van slider
+    start_month_name, end_month_name = st.select_slider(
+        "Selecteer de maanden", 
+        options=maanden, 
+        value=(maanden[0], maanden[11]), 
+        key="maand_slider",
+        help="Selecteer een periode van maanden van het jaar"
+    )
+
+    # Zet de geselecteerde maandnamen om naar maandnummers
+    start_month = maanden.index(start_month_name) + 1  # Maandnaam naar maandnummer
+    end_month = maanden.index(end_month_name) + 1      # Maandnaam naar maandnummer
+
     # Plotly figuur voor afspraken
     fig = go.Figure()
 
@@ -107,10 +107,10 @@ if pagina == 'Afspraken':
 
     # Plot met Plotly
     fig1 = px.line(maandelijkse_totals, 
-                x='maand', 
-                y='toegewezen_bedrag', 
-                color='jaar',
-                markers=True)
+                   x='maand', 
+                   y='toegewezen_bedrag', 
+                   color='jaar',
+                   markers=True)
 
     fig1.update_layout(title="Totaalbedrag van verstuurde facturen per maand",
         xaxis=dict(
@@ -127,7 +127,6 @@ if pagina == 'Afspraken':
     # Streamlit plot
     st.plotly_chart(fig1)
 
-
 elif pagina == 'Kaart':
-    # Initialize a map centered on a specific location (e.g., London in this case)
+    # Placeholder voor kaart, om later meer toe te voegen
     st.title("Later meer")
