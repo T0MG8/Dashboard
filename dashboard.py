@@ -23,7 +23,7 @@ def load_data_factuur():
 factuur = load_data_factuur()
 
 # Maandnamen lijst voor slider
-maanden = ['Jan', 'Feb', 'Mrt', 'Apr', 'Mei', 'Jun', 'Jul', 'Aug', 'Sep', 'Okt', 'Nov', 'Dec']
+maanden = ['Januari', 'Februari', 'Maart', 'April', 'Mei', 'Juni', 'Juli', 'Augustus', 'September', 'Oktober', 'November', 'December']
 
 # Slider voor maandselectie, hier geef je de maandnamen als labels
 start_month, end_month = st.slider(
@@ -33,7 +33,8 @@ start_month, end_month = st.slider(
     value=(1, 12), 
     step=1, 
     format="Month %d", 
-    key="maand_slider"
+    key="maand_slider",
+    help="Selecteer een periode van maanden van het jaar"
 )
 
 # Lijst van dataframes en corresponderende jaartallen
