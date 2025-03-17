@@ -2,7 +2,13 @@ import pandas as pd
 import streamlit as st
 import plotly.graph_objects as go
 import plotly.express as px
+import folium
+from streamlit_folium import st_folium
+from folium import plugins
 import calendar
+
+# Sidebar met tabbladen
+pagina = st.sidebar.radio("Selecteer een pagina", ['Afspraken', 'Kaart'])
 
 # Data inladen
 @st.cache_data
@@ -42,9 +48,6 @@ start_month_name, end_month_name = st.select_slider(
 start_month = maanden.index(start_month_name) + 1  # Maandnaam naar maandnummer
 end_month = maanden.index(end_month_name) + 1      # Maandnaam naar maandnummer
 
-# Toon de geselecteerde maanden (met maandnamen)
-st.write(f"Geselecteerde periode: {start_month_name} tot {end_month_name}")
-
 # Lijst van dataframes en corresponderende jaartallen
 dataframes = {
     2020: afspraken2020,
@@ -54,74 +57,88 @@ dataframes = {
     2024: afspraken2024
 }
 
-# Plotly figuur voor afspraken
-fig = go.Figure()
+if pagina == 'Afspraken':
+    # Plotly figuur voor afspraken
+    fig = go.Figure()
 
-# Voor elke dataframe een lijn toevoegen
-for year, df in dataframes.items():
-    df['datum'] = pd.to_datetime(df['datum'], format='%d-%m-%Y')
-    df['maand'] = df['datum'].dt.month
+    # Voor elke dataframe een lijn toevoegen
+    for year, df in dataframes.items():
+        df['datum'] = pd.to_datetime(df['datum'], format='%d-%m-%Y')
+        df['maand'] = df['datum'].dt.month
 
-    # Filter op geselecteerde maanden (gebruik maandnummers)
-    filtered_df = df[(df['maand'] >= start_month) & (df['maand'] <= end_month)]
+        # Filter op geselecteerde maanden (gebruik maandnummers)
+        filtered_df = df[(df['maand'] >= start_month) & (df['maand'] <= end_month)]
 
-    maand_telling = filtered_df['maand'].value_counts().sort_index()
+        maand_telling = filtered_df['maand'].value_counts().sort_index()
 
-    fig.add_trace(go.Scatter(
-        x=maand_telling.index,
-        y=maand_telling.values,
-        mode='lines+markers',
-        name=f'{year}'
-    ))
+        fig.add_trace(go.Scatter(
+            x=maand_telling.index,
+            y=maand_telling.values,
+            mode='lines+markers',
+            name=f'{year}'
+        ))
 
-fig.update_traces(hovertemplate='<br>Aantal: %{y}<br>')
-fig.update_layout(
-    title="Aantal afspraken per maand",
-    xaxis=dict(
-        title="Maand", 
-        tickmode='array', 
-        showgrid=True, 
-        tickvals=list(range(1, 13)), 
-        ticktext=maanden  # Maandnamen tonen in plaats van nummers
-    ),
-    yaxis_title="Aantal afspraken",
-    legend_title="Jaar",
-    yaxis=dict(showgrid=True)
-)
+    fig.update_traces(hovertemplate='<br>Aantal: %{y}<br>')
+    fig.update_layout(
+        title="Aantal afspraken per maand",
+        xaxis=dict(
+            title="Maand", 
+            tickmode='array', 
+            showgrid=True, 
+            tickvals=list(range(1, 13)), 
+            ticktext=maanden  # Maandnamen tonen in plaats van nummers
+        ),
+        yaxis_title="Aantal afspraken",
+        legend_title="Jaar",
+        yaxis=dict(showgrid=True)
+    )
 
-st.plotly_chart(fig)
+    st.plotly_chart(fig)
 
-# Zorg ervoor dat factuurdatum in datetime-formaat is
-factuur['factuurdatum'] = pd.to_datetime(factuur['factuurdatum'], dayfirst=True)
+    # Zorg ervoor dat factuurdatum in datetime-formaat is
+    factuur['factuurdatum'] = pd.to_datetime(factuur['factuurdatum'], dayfirst=True)
 
-# Extraheer jaar en maand
-factuur['jaar'] = factuur['factuurdatum'].dt.year
-factuur['maand'] = factuur['factuurdatum'].dt.month
+    # Extraheer jaar en maand
+    factuur['jaar'] = factuur['factuurdatum'].dt.year
+    factuur['maand'] = factuur['factuurdatum'].dt.month
 
-# Filter op de geselecteerde maanden (gebruik maandnummers)
-filtered_factuur = factuur[(factuur['maand'] >= start_month) & (factuur['maand'] <= end_month)]
+    # Filter op de geselecteerde maanden (gebruik maandnummers)
+    filtered_factuur = factuur[(factuur['maand'] >= start_month) & (factuur['maand'] <= end_month)]
 
-# Groepeer per jaar en maand en sommeer het toegewezen bedrag
-maandelijkse_totals = filtered_factuur.groupby(['jaar', 'maand'])['toegewezen_bedrag'].sum().reset_index()
+    # Groepeer per jaar en maand en sommeer het toegewezen bedrag
+    maandelijkse_totals = filtered_factuur.groupby(['jaar', 'maand'])['toegewezen_bedrag'].sum().reset_index()
 
-# Plot met Plotly
-fig1 = px.line(maandelijkse_totals, 
-              x='maand', 
-              y='toegewezen_bedrag', 
-              color='jaar',
-              markers=True)
+    # Plot met Plotly
+    fig1 = px.line(maandelijkse_totals, 
+                x='maand', 
+                y='toegewezen_bedrag', 
+                color='jaar',
+                markers=True)
 
-fig1.update_layout(
-    xaxis=dict(
-        tickmode='array', 
-        tickvals=list(range(1, 13)), 
-        ticktext=maanden,  # Maandnamen tonen in plaats van nummers
-    ),
-    yaxis_title="Totaal Bedrag",
-    legend_title="Jaar",
-    xaxis_showgrid=True,
-    yaxis_showgrid=True
-)
+    fig1.update_layout(title="Totaalbedrag van verstuurde facturen per maand",
+        xaxis=dict(
+            tickmode='array', 
+            tickvals=list(range(1, 13)), 
+            ticktext=maanden,  # Maandnamen tonen in plaats van nummers
+        ),
+        yaxis_title="Totaal Bedrag",
+        legend_title="Jaar",
+        xaxis_showgrid=True,
+        yaxis_showgrid=True
+    )
 
-# Streamlit plot
-st.plotly_chart(fig1)
+    # Streamlit plot
+    st.plotly_chart(fig1)
+
+
+elif pagina == 'Kaart':
+    # Initialize a map centered on a specific location (e.g., London in this case)
+    m = folium.Map(location=[51.517544, -0.010726], zoom_start=10)
+
+    # Optional: Add a marker to the map (for example, using some custom data)
+    folium.Marker([51.517544, -0.010726], popup="Example Location").add_to(m)
+
+    # You can add more markers or other folium features here as needed.
+
+    # Display the map in Streamlit using st_folium
+    st_folium(m, width=725)
