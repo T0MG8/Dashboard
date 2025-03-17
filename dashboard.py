@@ -3,8 +3,6 @@ import streamlit as st
 import plotly.graph_objects as go
 import plotly.express as px
 
-pagina = st.sidebar.radio("Selecteer een pagina", ['Afspraken', 'Factuur'])
-
 # Data inladen
 @st.cache_data
 def load_data_afspraken():
@@ -17,13 +15,15 @@ def load_data_afspraken():
 
 afspraken2020, afspraken2021, afspraken2022, afspraken2023, afspraken2024 = load_data_afspraken()
 
-
 @st.cache_data
 def load_data_factuur():
     factuur = pd.read_excel('Factuurregels 2020-2024.xlsx')
     return factuur
 
 factuur = load_data_factuur()
+
+# Slider voor maandselectie
+start_month, end_month = st.slider("Selecteer de maanden", 1, 12, (1, 12))
 
 # Lijst van dataframes en corresponderende jaartallen
 dataframes = {
@@ -34,54 +34,51 @@ dataframes = {
     2024: afspraken2024
 }
 
-if pagina == 'Afspraken':
-    # Plotly figuur
-    fig = go.Figure()
+# Plotly figuur voor afspraken
+fig = go.Figure()
 
-    # Voor elke dataframe een lijn toevoegen
-    for year, df in dataframes.items():
-        # Datum kolom omzetten naar datetime-formaat
-        df['datum'] = pd.to_datetime(df['datum'], format='%d-%m-%Y')
-        
-        # Maand extracten
-        df['maand'] = df['datum'].dt.month
-        
-        # Afspraken per maand tellen
-        maand_telling = df['maand'].value_counts().sort_index()
-        
-        # Plot toevoegen
-        fig.add_trace(go.Scatter(
-            x=maand_telling.index,
-            y=maand_telling.values,
-            mode='lines+markers',
-            name=f'{year}'
-        ))  
+# Voor elke dataframe een lijn toevoegen
+for year, df in dataframes.items():
+    df['datum'] = pd.to_datetime(df['datum'], format='%d-%m-%Y')
+    df['maand'] = df['datum'].dt.month
 
-    fig.update_traces(hovertemplate='<br>Aantal: %{y}<br>')
+    # Filter op geselecteerde maanden
+    filtered_df = df[(df['maand'] >= start_month) & (df['maand'] <= end_month)]
 
-    # Layout aanpassen
-    fig.update_layout(
-        title="Aantal afspraken per maand",
-        xaxis=dict(title="Maand", tickmode='array', showgrid=True, tickvals=list(range(1, 13)), ticktext=['Jan', 'Feb', 'Mrt', 'Apr', 'Mei', 'Jun', 'Jul', 'Aug', 'Sep', 'Okt', 'Nov', 'Dec']),
-        yaxis_title="Aantal afspraken",
-        legend_title="Jaar",
-        yaxis=dict(showgrid=True)
-    )
+    maand_telling = filtered_df['maand'].value_counts().sort_index()
 
-    # Streamlit plotten
-    st.plotly_chart(fig)
+    fig.add_trace(go.Scatter(
+        x=maand_telling.index,
+        y=maand_telling.values,
+        mode='lines+markers',
+        name=f'{year}'
+    ))
 
+fig.update_traces(hovertemplate='<br>Aantal: %{y}<br>')
+fig.update_layout(
+    title="Aantal afspraken per maand",
+    xaxis=dict(title="Maand", tickmode='array', showgrid=True, 
+               tickvals=list(range(1, 13)), 
+               ticktext=['Jan', 'Feb', 'Mrt', 'Apr', 'Mei', 'Jun', 'Jul', 'Aug', 'Sep', 'Okt', 'Nov', 'Dec']),
+    yaxis_title="Aantal afspraken",
+    legend_title="Jaar",
+    yaxis=dict(showgrid=True)
+)
 
-elif pagina == 'Factuur':
+st.plotly_chart(fig)
+
 # Zorg ervoor dat factuurdatum in datetime-formaat is
-    factuur['factuurdatum'] = pd.to_datetime(factuur['factuurdatum'], dayfirst=True)
+factuur['factuurdatum'] = pd.to_datetime(factuur['factuurdatum'], dayfirst=True)
 
 # Extraheer jaar en maand
 factuur['jaar'] = factuur['factuurdatum'].dt.year
 factuur['maand'] = factuur['factuurdatum'].dt.month
 
+# Filter op de geselecteerde maanden
+filtered_factuur = factuur[(factuur['maand'] >= start_month) & (factuur['maand'] <= end_month)]
+
 # Groepeer per jaar en maand en sommeer het toegewezen bedrag
-maandelijkse_totals = factuur.groupby(['jaar', 'maand'])['toegewezen_bedrag'].sum().reset_index()
+maandelijkse_totals = filtered_factuur.groupby(['jaar', 'maand'])['toegewezen_bedrag'].sum().reset_index()
 
 # Plot met Plotly
 fig1 = px.line(maandelijkse_totals, 
