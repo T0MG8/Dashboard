@@ -93,7 +93,9 @@ fig1.update_layout(
     xaxis=dict(tickmode='array', tickvals=list(range(1, 13)), 
                ticktext=['Jan', 'Feb', 'Mrt', 'Apr', 'Mei', 'Jun', 'Jul', 'Aug', 'Sep', 'Okt', 'Nov', 'Dec']),
     yaxis_title="Totaal Bedrag",
-    legend_title="Jaar"
+    legend_title="Jaar",
+    xaxis_showgrid=True,
+    yaxis_showgrid=True
 )
 
 # Streamlit plot
