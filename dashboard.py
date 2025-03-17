@@ -3,8 +3,6 @@ import streamlit as st
 import plotly.graph_objects as go
 import plotly.express as px
 import calendar
-import folium
-from streamlit_folium import st_folium
 
 # Sidebar met tabbladen
 pagina = st.sidebar.radio("Selecteer een pagina", ['Afspraken', 'Kaart'])
@@ -130,12 +128,5 @@ if pagina == 'Afspraken':
     st.plotly_chart(fig1)
 
 elif pagina == 'Kaart':
-    # Maak een voorbeeld Folium-kaart (bijvoorbeeld een kaart van Amsterdam)
-    map_center = [52.3676, 4.9041]  # Coördinaten van Amsterdam
-    m = folium.Map(location=map_center, zoom_start=12)
-
-    # Voeg een marker toe aan de kaart
-    folium.Marker([52.3676, 4.9041], popup="Amsterdam").add_to(m)
-
-    # Toon de kaart in Streamlit
-    st_folium(m, width=700, height=500)
+    # Placeholder voor kaart, om later meer toe te voegen
+    st.title("Later meer")
