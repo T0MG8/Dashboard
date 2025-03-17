@@ -18,7 +18,7 @@ afspraken2020, afspraken2021, afspraken2022, afspraken2023, afspraken2024 = load
 
 @st.cache_data
 def load_data_factuur():
-    factuur = pd.read_excel('Factuurregels 2020-2024')
+    factuur = pd.read_excel('Factuurregels 2020-2024.xlsx')
     return factuur
 
 factuur = load_data_factuur()
@@ -67,9 +67,6 @@ fig.update_layout(
 
 # Streamlit plotten
 st.plotly_chart(fig)
-
-
-
 
 # Streamlit titel
 st.title("Toegewezen Bedrag per Maand per Jaar")
