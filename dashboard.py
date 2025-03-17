@@ -2,6 +2,7 @@ import pandas as pd
 import streamlit as st
 import plotly.graph_objects as go
 import plotly.express as px
+import calendar
 
 # Data inladen
 @st.cache_data
@@ -25,14 +26,11 @@ factuur = load_data_factuur()
 # Maandnamen lijst voor slider
 maanden = ['Januari', 'Februari', 'Maart', 'April', 'Mei', 'Juni', 'Juli', 'Augustus', 'September', 'Oktober', 'November', 'December']
 
-import streamlit as st
-import calendar
-
-# Een lijst van maandnamen
-maanden = [calendar.month_name[i] for i in range(1, 13)]
+# Maak een mapping van maandnummer naar maandnaam
+maand_mapping = {i + 1: maanden[i] for i in range(len(maanden))}
 
 # Gebruik select_slider in plaats van slider
-start_month, end_month = st.select_slider(
+start_month_name, end_month_name = st.select_slider(
     "Selecteer de maanden", 
     options=maanden, 
     value=(maanden[0], maanden[11]), 
@@ -40,9 +38,12 @@ start_month, end_month = st.select_slider(
     help="Selecteer een periode van maanden van het jaar"
 )
 
-# Toon de geselecteerde maanden
-st.write(f"Geselecteerde periode: {start_month} tot {end_month}")
+# Zet de geselecteerde maandnamen om naar maandnummers
+start_month = maanden.index(start_month_name) + 1  # Maandnaam naar maandnummer
+end_month = maanden.index(end_month_name) + 1      # Maandnaam naar maandnummer
 
+# Toon de geselecteerde maanden (met maandnamen)
+st.write(f"Geselecteerde periode: {start_month_name} tot {end_month_name}")
 
 # Lijst van dataframes en corresponderende jaartallen
 dataframes = {
@@ -61,7 +62,7 @@ for year, df in dataframes.items():
     df['datum'] = pd.to_datetime(df['datum'], format='%d-%m-%Y')
     df['maand'] = df['datum'].dt.month
 
-    # Filter op geselecteerde maanden
+    # Filter op geselecteerde maanden (gebruik maandnummers)
     filtered_df = df[(df['maand'] >= start_month) & (df['maand'] <= end_month)]
 
     maand_telling = filtered_df['maand'].value_counts().sort_index()
@@ -97,7 +98,7 @@ factuur['factuurdatum'] = pd.to_datetime(factuur['factuurdatum'], dayfirst=True)
 factuur['jaar'] = factuur['factuurdatum'].dt.year
 factuur['maand'] = factuur['factuurdatum'].dt.month
 
-# Filter op de geselecteerde maanden
+# Filter op de geselecteerde maanden (gebruik maandnummers)
 filtered_factuur = factuur[(factuur['maand'] >= start_month) & (factuur['maand'] <= end_month)]
 
 # Groepeer per jaar en maand en sommeer het toegewezen bedrag
