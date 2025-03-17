@@ -22,8 +22,19 @@ def load_data_factuur():
 
 factuur = load_data_factuur()
 
-# Slider voor maandselectie
-start_month, end_month = st.slider("Selecteer de maanden", 1, 12, (1, 12))
+# Maandnamen lijst voor slider
+maanden = ['Jan', 'Feb', 'Mrt', 'Apr', 'Mei', 'Jun', 'Jul', 'Aug', 'Sep', 'Okt', 'Nov', 'Dec']
+
+# Slider voor maandselectie, hier geef je de maandnamen als labels
+start_month, end_month = st.slider(
+    "Selecteer de maanden", 
+    min_value=1, 
+    max_value=12, 
+    value=(1, 12), 
+    step=1, 
+    format="Month %d", 
+    key="maand_slider"
+)
 
 # Lijst van dataframes en corresponderende jaartallen
 dataframes = {
@@ -57,9 +68,13 @@ for year, df in dataframes.items():
 fig.update_traces(hovertemplate='<br>Aantal: %{y}<br>')
 fig.update_layout(
     title="Aantal afspraken per maand",
-    xaxis=dict(title="Maand", tickmode='array', showgrid=True, 
-               tickvals=list(range(1, 13)), 
-               ticktext=['Jan', 'Feb', 'Mrt', 'Apr', 'Mei', 'Jun', 'Jul', 'Aug', 'Sep', 'Okt', 'Nov', 'Dec']),
+    xaxis=dict(
+        title="Maand", 
+        tickmode='array', 
+        showgrid=True, 
+        tickvals=list(range(1, 13)), 
+        ticktext=maanden  # Maandnamen tonen in plaats van nummers
+    ),
     yaxis_title="Aantal afspraken",
     legend_title="Jaar",
     yaxis=dict(showgrid=True)
@@ -88,8 +103,11 @@ fig1 = px.line(maandelijkse_totals,
               markers=True)
 
 fig1.update_layout(
-    xaxis=dict(tickmode='array', tickvals=list(range(1, 13)), 
-               ticktext=['Jan', 'Feb', 'Mrt', 'Apr', 'Mei', 'Jun', 'Jul', 'Aug', 'Sep', 'Okt', 'Nov', 'Dec']),
+    xaxis=dict(
+        tickmode='array', 
+        tickvals=list(range(1, 13)), 
+        ticktext=maanden,  # Maandnamen tonen in plaats van nummers
+    ),
     yaxis_title="Totaal Bedrag",
     legend_title="Jaar",
     xaxis_showgrid=True,
