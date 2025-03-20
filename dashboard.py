@@ -60,16 +60,19 @@ if pagina == 'Afspraken':
     start_month = maanden.index(start_month_name) + 1  # Maandnaam naar maandnummer
     end_month = maanden.index(end_month_name) + 1      # Maandnaam naar maandnummer
 
-    # Plotly figuur voor afspraken
+# Plotly figuur voor afspraken
     fig = go.Figure()
 
-    # Voor elke dataframe een lijn toevoegen
+# Voor elke dataframe een lijn toevoegen
     for year, df in dataframes.items():
         df['datum'] = pd.to_datetime(df['datum'], format='%d-%m-%Y')
         df['maand'] = df['datum'].dt.month
 
-        # Filter op geselecteerde maanden (gebruik maandnummers)
+    # Filter op geselecteerde maanden (gebruik maandnummers)
         filtered_df = df[(df['maand'] >= start_month) & (df['maand'] <= end_month)]
+    
+    # Bereken totaal aantal afspraken voor dat jaar
+        totaal_afspraken = filtered_df.shape[0]
 
         maand_telling = filtered_df['maand'].value_counts().sort_index()
 
@@ -77,10 +80,10 @@ if pagina == 'Afspraken':
             x=maand_telling.index,
             y=maand_telling.values,
             mode='lines+markers',
-            name=f'{year}'
+            name=f'{year}',
+            hovertemplate=f"Jaar: {year}<br>Maand: %{{x}}<br>Aantal: %{{y}}<br>Totaal {year}: {totaal_afspraken}"
         ))
 
-    fig.update_traces(hovertemplate='<br>Aantal: %{y}<br>')
     fig.update_layout(
         title="Aantal afspraken per maand",
         xaxis=dict(
@@ -96,6 +99,7 @@ if pagina == 'Afspraken':
     )
 
     st.plotly_chart(fig)
+
 
     # Zorg ervoor dat factuurdatum in datetime-formaat is
     factuur['factuurdatum'] = pd.to_datetime(factuur['factuurdatum'], dayfirst=True)
