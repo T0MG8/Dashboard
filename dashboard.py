@@ -3,9 +3,12 @@ import streamlit as st
 import plotly.graph_objects as go
 import plotly.express as px
 import calendar
+import folium
+from streamlit_folium import st_folium
+
 
 # Sidebar met tabbladen
-pagina = st.sidebar.radio("Selecteer een pagina", ['Afspraken', 'Kaart'])
+pagina = st.sidebar.radio("Selecteer een pagina", ['Afspraken', 'Kaart', 'Behandelaren'])
 
 # Data inladen
 @st.cache_data
@@ -15,9 +18,10 @@ def load_data_afspraken():
     afspraken2022 = pd.read_excel('afspraken 2022.xlsx') 
     afspraken2023 = pd.read_excel('afspraken 2023.xlsx') 
     afspraken2024 = pd.read_excel('afspraken 2024.xlsx') 
-    return afspraken2020, afspraken2021, afspraken2022, afspraken2023, afspraken2024
+    afspraken2025 = pd.read_excel('afspraken 2025.xlsx')
+    return afspraken2020, afspraken2021, afspraken2022, afspraken2023, afspraken2024, afspraken2025
 
-afspraken2020, afspraken2021, afspraken2022, afspraken2023, afspraken2024 = load_data_afspraken()
+afspraken2020, afspraken2021, afspraken2022, afspraken2023, afspraken2024, afspraken2025 = load_data_afspraken()
 
 @st.cache_data
 def load_data_factuur():
@@ -38,7 +42,8 @@ dataframes = {
     2021: afspraken2021,
     2022: afspraken2022,
     2023: afspraken2023,
-    2024: afspraken2024
+    2024: afspraken2024,
+    2025: afspraken2025
 }
 
 if pagina == 'Afspraken':
@@ -128,5 +133,17 @@ if pagina == 'Afspraken':
     st.plotly_chart(fig1)
 
 elif pagina == 'Kaart':
-    # Placeholder voor kaart, om later meer toe te voegen
-    st.title("Later meer")
+    # Maak een kaart van Noord-Holland
+    m = folium.Map(location=[52.65, 4.85], zoom_start=9)
+    
+    st.title("Kaart van Noord-Holland")
+    
+    st_folium(m, width=700, height=500)
+
+
+
+
+elif pagina == 'Behandelaren':
+    st.title("Overzicht van Behandelaren")
+    st.write("Hier komt informatie over behandelaren.")
+
