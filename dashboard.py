@@ -81,7 +81,7 @@ if pagina == 'Afspraken':
             y=maand_telling.values,
             mode='lines+markers',
             name=f'{year}',
-            hovertemplate=f"Jaar: {year}<br>Maand: %{{x}}<br>Aantal: %{{y}}<br>Totaal {year}: {totaal_afspraken}"
+            hovertemplate=f"Maand: %{{x}}<br>Aantal: %{{y}}<br>Totaal {year}: {totaal_afspraken}"
         ))
 
     fig.update_layout(
