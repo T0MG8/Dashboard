@@ -467,6 +467,88 @@ elif pagina == 'Gemeentes':
 
 
 elif pagina == 'Behandelaren':
-    st.title("Overzicht van Behandelaren")
-    st.write("Hier komt informatie over behandelaren.")
+    # Dataframes per jaar
+    dataframes = {
+        2020: afspraken2020,
+        2021: afspraken2021,
+        2022: afspraken2022,
+        2023: afspraken2023,
+        2024: afspraken2024,
+        2025: afspraken2025
+    }
+
+    for jaar in dataframes.keys():
+        dataframes[jaar] = dataframes[jaar].merge(
+            factuur[['clientcode', 'debiteur']], 
+            left_on='clienten_aanwezig', 
+            right_on='clientcode', 
+            how='left'
+        ).rename(columns={'debiteur': 'gemeente'})
+
+    # Streamlit UI
+    st.title("Unieke cliënten per uitvoerder")
+
+    # Slider voor het jaar
+    selected_year = st.slider("Kies een jaar:", min_value=2020, max_value=2025, value=2024)
+
+    df = dataframes[selected_year]
+
+    # Groeperen per uitvoerder en gemeente, en het aantal unieke cliënten tellen
+    uitvoerder_counts = df.groupby(['uitvoerder', 'gemeente'])['clienten_aanwezig'].nunique().reset_index()
+
+    dic = {
+        'Regio Alkmaar': ['Alkmaar', 'Bergen (NH.)', 'Castricum', 'Dijk en Waard', 'Heiloo', 'Uitgeest'],
+        'Kop van Noord-Holland': ['Den Helder', 'Schagen', 'Texel', 'Hollands Kroon'],
+        'Regio IJmond': ['Beverwijk', 'Heemskerk', 'Velsen'],
+        'West Friesland': ['Drechterland', 'Enkhuizen', 'Hoorn', 'Koggenland', 'Medemblik', 'Opmeer', 'Stede Broec'],
+        'Zuid Kennermerland': ['Bloemendaal', 'Haarlem', 'Heemstede', 'Zandvoort'],
+        'Regio Zaanstreek Waterland': ['Edam-Volendam', 'Landsmeer', 'Oostzaan', 'Purmerend', 'Waterland', 'Wormerland', 'Zaanstad', 'Langedijk', 'Beemster', 'Heerhugowaard'],
+        'Regio Amsterdam-Amstelland': ['Amsterdam']
+    }
+
+    # Mapping van gemeente naar regio
+    def gemeente_naar_regio(gemeente):
+        for regio, gemeentes in dic.items():
+            if gemeente in gemeentes:
+                return regio
+        return "Onbekend"
+
+    # Nieuwe kolom "regio" toevoegen
+    uitvoerder_counts['regio'] = uitvoerder_counts['gemeente'].apply(gemeente_naar_regio)
+
+    # Dropdownmenu voor regioselectie
+    regio_keuzes = ["Alle regio's"] + list(dic.keys())
+    selected_regio = st.selectbox("Selecteer een regio:", regio_keuzes)
+
+    # Filteren op regio
+    if selected_regio != "Alle regio's":
+        uitvoerder_counts = uitvoerder_counts[uitvoerder_counts['regio'] == selected_regio]
+        kleurvariabele = "gemeente"  # Elke gemeente krijgt een unieke kleur
+        hovertemplate = "Aantal unieke cliënten: %{y}<br>Uitvoerder: %{x}"
+        customdata = uitvoerder_counts[['gemeente']].values
+    else:
+        kleurvariabele = "regio"  # Kleur blijft per regio
+        uitvoerder_counts = uitvoerder_counts.groupby(["uitvoerder", "regio"])["clienten_aanwezig"].sum().reset_index()
+        hovertemplate = "Aantal unieke cliënten: %{y}<br>Uitvoerder: %{x}"
+        customdata = uitvoerder_counts[['regio']].values
+
+    # Plot maken met Plotly
+    fig3 = px.bar(
+        uitvoerder_counts, 
+        x='uitvoerder', 
+        y='clienten_aanwezig', 
+        color=kleurvariabele, 
+        title="Unieke cliënten per uitvoerder", 
+        labels={'uitvoerder': 'Uitvoerder', 'clienten_aanwezig': 'Aantal unieke cliënten', kleurvariabele: kleurvariabele.capitalize()}, 
+        barmode='stack'  
+    )
+
+    # Pas de hoverdata aan
+    fig3.update_traces(hovertemplate=hovertemplate, customdata=customdata)
+
+    fig3.update_layout(xaxis_tickangle=-45)
+    st.plotly_chart(fig3)
+    
+
+
 
