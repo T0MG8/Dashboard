@@ -212,28 +212,6 @@ elif pagina == 'Gemeentes':
     st.plotly_chart(fig)
 
 
-# # Groepeer per regio en per maand en tel de rijen
-#     df_grouped = factuur_filtered.groupby(['maand', 'regio'], as_index=False).size()
-
-# # Hernoem de kolom 'size' naar een meer betekenisvolle naam, bijvoorbeeld 'Aantal Facturen'
-#     df_grouped.rename(columns={'size': 'Aantal Facturen'}, inplace=True)
-
-# # Maak de interactieve grafiek
-#     fig5 = px.line(df_grouped, 
-#                   x='maand', 
-#                   y='Aantal Facturen', 
-#                   color='regio', 
-#                 markers=True,
-#                 title="Aantal afspraken per regio per maand",
-#                 labels={'maand': 'Maand', 'Aantal Facturen': 'Aantal Facturen', 'regio': 'Regio'})
-    
-    
-
-# # Toon de grafiek in Streamlit
-#     st.plotly_chart(fig5)
-
-
-
 
     kleur_mapping = {
     'Alkmaar': 'blue',
@@ -548,6 +526,38 @@ elif pagina == 'Behandelaren':
 
     fig3.update_layout(xaxis_tickangle=-45)
     st.plotly_chart(fig3)
+
+
+# Tellen van het aantal afspraken per uitvoerder en gemeente
+    afspraken_per_uitvoerder = df.groupby(['uitvoerder', 'gemeente']).size().reset_index(name='aantal_afspraken')
+
+# Gemeente omzetten naar regio
+    afspraken_per_uitvoerder['regio'] = afspraken_per_uitvoerder['gemeente'].apply(gemeente_naar_regio)
+
+# Groeperen op uitvoerder, regio en gemeente
+    afspraken_per_uitvoerder = afspraken_per_uitvoerder.groupby(['uitvoerder', 'gemeente', 'regio'])['aantal_afspraken'].sum().reset_index()
+
+# **Filter op geselecteerde regio**
+    if selected_regio != "Alle regio's":
+        afspraken_per_uitvoerder = afspraken_per_uitvoerder[afspraken_per_uitvoerder['regio'] == selected_regio]
+        kleurvariabele = "gemeente"  # Als een regio is geselecteerd, kleur per gemeente
+    else:
+        kleurvariabele = "regio"  # Als alle regio's worden getoond, kleur per regio
+
+# Nieuwe plot maken
+    fig6 = px.bar(
+        afspraken_per_uitvoerder, 
+        x='uitvoerder', 
+        y='aantal_afspraken', 
+        color=kleurvariabele,  # Dynamische kleur
+        title="Aantal afspraken per uitvoerder", 
+        labels={'uitvoerder': 'Uitvoerder', 'aantal_afspraken': 'Aantal afspraken', kleurvariabele: kleurvariabele.capitalize()}, 
+        barmode='stack'  # Zorgt ervoor dat de gemeentes/regio's per uitvoerder gestapeld worden
+)
+
+    fig6.update_layout(xaxis_tickangle=-45)
+    st.plotly_chart(fig6)
+
 
 
 
