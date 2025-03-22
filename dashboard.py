@@ -212,25 +212,25 @@ elif pagina == 'Gemeentes':
     st.plotly_chart(fig)
 
 
-# Groepeer per regio en per maand en tel de rijen
-    df_grouped = factuur_filtered.groupby(['maand', 'regio'], as_index=False).size()
+# # Groepeer per regio en per maand en tel de rijen
+#     df_grouped = factuur_filtered.groupby(['maand', 'regio'], as_index=False).size()
 
-# Hernoem de kolom 'size' naar een meer betekenisvolle naam, bijvoorbeeld 'Aantal Facturen'
-    df_grouped.rename(columns={'size': 'Aantal Facturen'}, inplace=True)
+# # Hernoem de kolom 'size' naar een meer betekenisvolle naam, bijvoorbeeld 'Aantal Facturen'
+#     df_grouped.rename(columns={'size': 'Aantal Facturen'}, inplace=True)
 
-# Maak de interactieve grafiek
-    fig5 = px.line(df_grouped, 
-                  x='maand', 
-                  y='Aantal Facturen', 
-                  color='regio', 
-                markers=True,
-                title="Aantal afspraken per regio per maand",
-                labels={'maand': 'Maand', 'Aantal Facturen': 'Aantal Facturen', 'regio': 'Regio'})
+# # Maak de interactieve grafiek
+#     fig5 = px.line(df_grouped, 
+#                   x='maand', 
+#                   y='Aantal Facturen', 
+#                   color='regio', 
+#                 markers=True,
+#                 title="Aantal afspraken per regio per maand",
+#                 labels={'maand': 'Maand', 'Aantal Facturen': 'Aantal Facturen', 'regio': 'Regio'})
     
     
 
-# Toon de grafiek in Streamlit
-    st.plotly_chart(fig5)
+# # Toon de grafiek in Streamlit
+#     st.plotly_chart(fig5)
 
 
 
@@ -548,7 +548,8 @@ elif pagina == 'Behandelaren':
 
     fig3.update_layout(xaxis_tickangle=-45)
     st.plotly_chart(fig3)
-    
+
+
 
 
 
