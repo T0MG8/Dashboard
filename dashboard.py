@@ -29,7 +29,7 @@ afspraken2020, afspraken2021, afspraken2022, afspraken2023, afspraken2024, afspr
 
 @st.cache_data
 def load_data_factuur():
-    factuur = pd.read_excel('Factuurregels 2020-2024.xlsx')
+    factuur = pd.read_excel('Factuurregels 2020-2025.xlsx')
     return factuur
 
 factuur = load_data_factuur()
