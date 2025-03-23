@@ -140,6 +140,49 @@ if pagina == 'Afspraken':
     # Streamlit plot
     st.plotly_chart(fig1)
 
+    maandelijkse_totals = []
+
+    # Voor elke dataframe, jaar en duur groeperen
+    for year, df in dataframes.items():
+        df['datum'] = pd.to_datetime(df['datum'], format='%d-%m-%Y')
+        df['maand'] = df['datum'].dt.month
+        df['jaar'] = df['datum'].dt.year  
+
+        # Filter op de geselecteerde maanden (gebruik maandnummers)
+        filtered_df = df[(df['maand'] >= start_month) & (df['maand'] <= end_month)]
+
+        # Groepeer per jaar en maand en sommeer de duur
+        maand_duur = filtered_df.groupby(['jaar', 'maand'])['duur'].sum().reset_index()
+
+        maandelijkse_totals.append(maand_duur)
+
+    # Combineer de maandelijkse totals van alle jaren in één dataframe
+    maandelijkse_totals_df = pd.concat(maandelijkse_totals)
+
+    # Plot met Plotly Express
+    fig2 = px.line(maandelijkse_totals_df, 
+                  x='maand', 
+                  y='duur', 
+                  color='jaar', 
+                  markers=True)
+
+    fig2.update_layout(
+        title="Aantal minuten per maand per jaar",
+        xaxis=dict(
+            tickmode='array', 
+            tickvals=list(range(1, 13)), 
+            ticktext=maanden,  # Maandnamen tonen in plaats van nummers
+        ),
+        yaxis_title="Aantal minuten",
+        legend_title="Jaar",
+        xaxis_showgrid=True,
+        yaxis_showgrid=True
+    )
+
+    # Streamlit plot
+    st.plotly_chart(fig2)
+
+
 elif pagina == 'Gemeentes':
 # Zet de titel
     st.title("📊 Facturen per gemeente per maand")
@@ -150,14 +193,15 @@ elif pagina == 'Gemeentes':
     'Januari 2021', 'Februari 2021', 'Maart 2021', 'April 2021', 'Mei 2021', 'Juni 2021', 'Juli 2021', 'Augustus 2021', 'September 2021', 'Oktober 2021', 'November 2021', 'December 2021',
     'Januari 2022', 'Februari 2022', 'Maart 2022', 'April 2022', 'Mei 2022', 'Juni 2022', 'Juli 2022', 'Augustus 2022', 'September 2022', 'Oktober 2022', 'November 2022', 'December 2022',
     'Januari 2023', 'Februari 2023', 'Maart 2023', 'April 2023', 'Mei 2023', 'Juni 2023', 'Juli 2023', 'Augustus 2023', 'September 2023', 'Oktober 2023', 'November 2023', 'December 2023',
-    'Januari 2024', 'Februari 2024', 'Maart 2024', 'April 2024', 'Mei 2024', 'Juni 2024', 'Juli 2024', 'Augustus 2024', 'September 2024', 'Oktober 2024', 'November 2024', 'December 2024'
+    'Januari 2024', 'Februari 2024', 'Maart 2024', 'April 2024', 'Mei 2024', 'Juni 2024', 'Juli 2024', 'Augustus 2024', 'September 2024', 'Oktober 2024', 'November 2024', 'December 2024',
+    'Januari 2025', 'Februari 2025', 'Maart 2025', 'April 2025', 'Mei 2025', 'Juni 2025', 'Juli 2025', 'Augustus 2025', 'September 2025', 'Oktober 2025', 'November 2025', 'December 2025'
 ]
 
 # Slider voor het selecteren van maanden
     start_month_name, end_month_name = st.select_slider(
         "Selecteer de maanden", 
         options=jaarmaanden, 
-        value=(jaarmaanden[0], jaarmaanden[59]),  # Standaardwaarde is van Januari 2020 tot December 2020
+        value=(jaarmaanden[0], jaarmaanden[71]),  # Standaardwaarde is van Januari 2020 tot December 2020
         key="maand_slider",
         help="Selecteer een periode van maanden van het jaar"
 )
@@ -363,7 +407,7 @@ elif pagina == 'Gemeentes':
     st.title("Kaart van Noord-Holland")
 
 # Voeg een slider toe om het jaar te selecteren
-    jaar = st.slider("Selecteer jaar", min_value=2020, max_value=2025, value=2020)
+    jaar = st.slider("Selecteer jaar", min_value=2020, max_value=2025, value=2024)
 
     factuur['jaar'] = factuur['factuurdatum'].dt.year
 
@@ -557,9 +601,3 @@ elif pagina == 'Behandelaren':
 
     fig6.update_layout(xaxis_tickangle=-45)
     st.plotly_chart(fig6)
-
-
-
-
-
-
