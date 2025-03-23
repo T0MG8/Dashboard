@@ -10,9 +10,15 @@ import json
 import geopandas as gpd
 from shapely.geometry import shape
 import math
+from sklearn.ensemble import RandomForestRegressor
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import mean_absolute_error
+
+
+
 
 # Sidebar met tabbladen
-pagina = st.sidebar.radio("Selecteer een pagina", ['Afspraken', 'Gemeentes', 'Behandelaren'])
+pagina = st.sidebar.radio("Selecteer een pagina", ['Afspraken', 'Gemeentes', 'Behandelaren', 'Voorspelling'])
 
 # Data inladen
 @st.cache_data
@@ -33,6 +39,10 @@ def load_data_factuur():
     return factuur
 
 factuur = load_data_factuur()
+
+#-------------------------------------------------------------------------------------------------------------------------------------------
+
+#-------------------------------------------------------------------------------------------------------------------------------------------
 
 # Maandnamen lijst voor slider
 maanden = ['Januari', 'Februari', 'Maart', 'April', 'Mei', 'Juni', 'Juli', 'Augustus', 'September', 'Oktober', 'November', 'December']
@@ -104,7 +114,9 @@ if pagina == 'Afspraken':
 
     st.plotly_chart(fig)
 
+#-------------------------------------------------------------------------------------------------------------------------------------------
 
+#-------------------------------------------------------------------------------------------------------------------------------------------
     # Zorg ervoor dat factuurdatum in datetime-formaat is
     factuur['factuurdatum'] = pd.to_datetime(factuur['factuurdatum'], dayfirst=True)
 
@@ -139,6 +151,10 @@ if pagina == 'Afspraken':
 
     # Streamlit plot
     st.plotly_chart(fig1)
+
+#-------------------------------------------------------------------------------------------------------------------------------------------
+
+#-------------------------------------------------------------------------------------------------------------------------------------------
 
     maandelijkse_totals = []
 
@@ -182,6 +198,10 @@ if pagina == 'Afspraken':
     # Streamlit plot
     st.plotly_chart(fig2)
 
+#-------------------------------------------------------------------------------------------------------------------------------------------
+
+#-------------------------------------------------------------------------------------------------------------------------------------------
+
 
 elif pagina == 'Gemeentes':
 # Zet de titel
@@ -209,6 +229,10 @@ elif pagina == 'Gemeentes':
 # Zet de geselecteerde maandnamen om naar maandnummers
     start_month = jaarmaanden.index(start_month_name) + 1  # Maandnaam naar maandnummer (1-based)
     end_month = jaarmaanden.index(end_month_name) + 1      # Maandnaam naar maandnummer (1-based)
+
+#-------------------------------------------------------------------------------------------------------------------------------------------
+
+#-------------------------------------------------------------------------------------------------------------------------------------------
 
 # Regio dictionary (geeft regio's voor verschillende gemeenten)
     dic = {
@@ -255,6 +279,9 @@ elif pagina == 'Gemeentes':
 # Toon de grafiek in Streamlit
     st.plotly_chart(fig)
 
+#-------------------------------------------------------------------------------------------------------------------------------------------
+
+#-------------------------------------------------------------------------------------------------------------------------------------------
 
 
     kleur_mapping = {
@@ -470,7 +497,6 @@ elif pagina == 'Gemeentes':
     m = create_map()
     st_folium(m, width=700, height=500)
 
-
 # HTML en CSS voor verschillende gekleurde cirkels
     blue_circle = '<div style="width: 10px; height: 10px; background-color: blue; border-radius: 50%; display: inline-block;"></div>'
     green_circle = '<div style="width: 10px; height: 10px; background-color: green; border-radius: 50%; display: inline-block;"></div>'
@@ -486,7 +512,9 @@ elif pagina == 'Gemeentes':
     {orange_circle} Zuid Kennermerland | {brown_circle} Regio Zaanstreek Waterland | {pink_circle} Regio Amsterdam-Amstelland <br>
     """, unsafe_allow_html=True)
 
+#-------------------------------------------------------------------------------------------------------------------------------------------
 
+#-------------------------------------------------------------------------------------------------------------------------------------------
 
 elif pagina == 'Behandelaren':
     # Dataframes per jaar
@@ -601,3 +629,130 @@ elif pagina == 'Behandelaren':
 
     fig6.update_layout(xaxis_tickangle=-45)
     st.plotly_chart(fig6)
+
+
+
+
+
+
+elif pagina == 'Voorspelling':
+# De maandnamen voor de slider
+    maanden = [
+    "Januari", "Februari", "Maart", "April", "Mei", "Juni", 
+    "Juli", "Augustus", "September", "Oktober", "November", "December"
+]
+
+# Je data en modelcode
+    monthly_data = [
+    (2020, 1, 2768), (2020, 2, 2358), (2020, 3, 2821), (2020, 4, 2376), (2020, 5, 2158), (2020, 6, 2675),
+    (2020, 7, 853), (2020, 8, 1460), (2020, 9, 2840), (2020, 10, 2662), (2020, 11, 2815), (2020, 12, 2077),
+    (2021, 1, 2482), (2021, 2, 2212), (2021, 3, 2964), (2021, 4, 2333), (2021, 5, 2146), (2021, 6, 2755),
+    (2021, 7, 1185), (2021, 8, 904), (2021, 9, 2610), (2021, 10, 2101), (2021, 11, 2597), (2021, 12, 2065),
+    (2022, 1, 2079), (2022, 2, 2091), (2022, 3, 2919), (2022, 4, 2167), (2022, 5, 2310), (2022, 6, 2694),
+    (2022, 7, 1838), (2022, 8, 533), (2022, 9, 2566), (2022, 10, 2278), (2022, 11, 2757), (2022, 12, 2010),
+    (2023, 1, 2287), (2023, 2, 2134), (2023, 3, 2523), (2023, 4, 1988), (2023, 5, 2340), (2023, 6, 2606),
+    (2023, 7, 2201), (2023, 8, 210), (2023, 9, 1887), (2023, 10, 2293), (2023, 11, 2546), (2023, 12, 1783),
+    (2024, 1, 2143), (2024, 2, 2050), (2024, 3, 2401), (2024, 4, 2342), (2024, 5, 1989), (2024, 6, 2235),
+    (2024, 7, 2105), (2024, 8, 255), (2024, 9, 1858), (2024, 10, 2196), (2024, 11, 2170), (2024, 12, 1543)
+]
+
+# Zet data om in een pandas DataFrame
+    df = pd.DataFrame(monthly_data, columns=["Year", "Month", "Value"])
+
+# Features en target definiëren
+    X = df[["Year", "Month"]]
+    y = df["Value"]
+
+    # Data splitsen in train- en testset
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+    # Random Forest model trainen
+    model = RandomForestRegressor(n_estimators=100, random_state=1)
+    model.fit(X_train, y_train)
+
+    # Voorspelling maken
+    y_pred = model.predict(X_test)
+
+    # Model evalueren
+    mae = mean_absolute_error(y_test, y_pred)
+
+    # Data voor 2025 genereren
+    future_months = [(2025, month) for month in range(1, 13)]
+    df_future = pd.DataFrame(future_months, columns=["Year", "Month"])
+
+    # Voorspelling voor 2025
+    future_predictions = model.predict(df_future)
+    df_future["Value"] = future_predictions
+
+    # Gebruik select_slider in plaats van slider
+    start_month_name, end_month_name = st.select_slider(
+        "Selecteer de maanden", 
+        options=maanden, 
+        value=(maanden[0], maanden[11]), 
+        key="maand_slider",
+        help="Selecteer een periode van maanden van het jaar"
+    )
+
+    # Zet de geselecteerde maandnamen om naar maandnummers
+    start_month = maanden.index(start_month_name) + 1  # Maandnaam naar maandnummer
+    end_month = maanden.index(end_month_name) + 1      # Maandnaam naar maandnummer
+
+    # Plotly figuur voor afspraken
+    fig = go.Figure()
+
+    # Voeg een trace toe voor de gegevens (bijv. afspraakdata)
+    for year, df in dataframes.items():
+        df['datum'] = pd.to_datetime(df['datum'], format='%d-%m-%Y')
+        df['maand'] = df['datum'].dt.month
+
+        # Filter op geselecteerde maanden (gebruik maandnummers)
+        filtered_df = df[(df['maand'] >= start_month) & (df['maand'] <= end_month)]
+
+        # Bereken totaal aantal afspraken voor dat jaar
+        totaal_afspraken = filtered_df.shape[0]
+        maand_telling = filtered_df['maand'].value_counts().sort_index()
+
+        fig.add_trace(go.Scatter(
+            x=maand_telling.index,
+            y=maand_telling.values,
+            mode='lines+markers',
+            name=f'{year}',
+            hovertemplate=f"    Maand: %{{x}}<br>Aantal: %{{y}}<br>Totaal {year}: {totaal_afspraken}"
+        ))
+
+    # Als de voorspelling getoond moet worden, voeg deze toe
+    if st.session_state.show_forecast:
+        fig.add_trace(go.Scatter(
+            x=df_future['Month'],
+            y=df_future['Value'],
+            mode='lines+markers',
+            name='2025 Voorspelling',
+            line=dict(dash='dot', color='black'),  # Zwarte lijn
+            hovertemplate="Maand: %{{x}}<br>Voorspelling: %{{y}}"
+        ))
+
+    # Layout voor de grafiek
+    fig.update_layout(
+        title="Aantal afspraken per maand",
+        xaxis=dict(
+            title="Maand", 
+            tickmode='array', 
+            showgrid=True, 
+            tickvals=list(range(1, 13)), 
+            ticktext=maanden  # Maandnamen tonen in plaats van nummers
+        ),
+        yaxis_title="Aantal afspraken",
+        legend_title="Jaar",
+        yaxis=dict(showgrid=True)
+    )
+
+    # Toon de grafiek in Streamlit
+    st.plotly_chart(fig)
+
+        # Voorspelling toggle (toon of verberg de voorspelling)
+    if 'show_forecast' not in st.session_state:
+        st.session_state.show_forecast = False  # Initialiseer de sessie status
+
+    if st.button('Voorspelling 2025'):
+        # Toggle de voorspelling
+        st.session_state.show_forecast = not st.session_state.show_forecast
