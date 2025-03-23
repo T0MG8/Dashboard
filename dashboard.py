@@ -14,9 +14,6 @@ from sklearn.ensemble import RandomForestRegressor
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import mean_absolute_error
 
-if "show_forecast" not in st.session_state:
-    st.session_state.show_forecast = False  # Of True, afhankelijk van je logica
-
 
 # Sidebar met tabbladen
 pagina = st.sidebar.radio("Selecteer een pagina", ['Afspraken', 'Gemeentes', 'Behandelaren', 'Voorspelling'])
@@ -115,6 +112,8 @@ if pagina == 'Afspraken':
 
     st.plotly_chart(fig)
 
+    
+
 #-------------------------------------------------------------------------------------------------------------------------------------------
 
 #-------------------------------------------------------------------------------------------------------------------------------------------
@@ -206,7 +205,7 @@ if pagina == 'Afspraken':
 
 elif pagina == 'Gemeentes':
 # Zet de titel
-    st.title("📊 Facturen per gemeente per maand")
+    st.title("Facturen per gemeente per maand")
 
 # Correcte lijst van jaar-maanden
     jaarmaanden = [
@@ -517,6 +516,26 @@ elif pagina == 'Gemeentes':
 
 #-------------------------------------------------------------------------------------------------------------------------------------------
 
+# Bereken het aantal unieke debiteuren per regio
+    df_unique_clients = factuur_filtered.groupby('regio')['debiteur'].nunique().reset_index()
+
+# Hernoem de kolommen voor duidelijkheid
+    df_unique_clients.columns = ['regio', 'aantal_unieke_clienten']
+
+# Maak het cirkeldiagram
+    fig10 = px.pie(df_unique_clients, 
+             names='regio', 
+             values='aantal_unieke_clienten', 
+             title="Aantal Unieke Cliënten per Regio tussen 2020 - 2025",
+             labels={'regio': 'Regio', 'aantal_unieke_clienten': 'Aantal Unieke Cliënten'})
+
+# Toon de grafiek in Streamlit
+    st.plotly_chart(fig10)
+
+
+
+
+
 elif pagina == 'Behandelaren':
     # Dataframes per jaar
     dataframes = {
@@ -600,6 +619,9 @@ elif pagina == 'Behandelaren':
     fig3.update_layout(xaxis_tickangle=-45)
     st.plotly_chart(fig3)
 
+#---------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+#---------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 # Tellen van het aantal afspraken per uitvoerder en gemeente
     afspraken_per_uitvoerder = df.groupby(['uitvoerder', 'gemeente']).size().reset_index(name='aantal_afspraken')
@@ -631,9 +653,43 @@ elif pagina == 'Behandelaren':
     fig6.update_layout(xaxis_tickangle=-45)
     st.plotly_chart(fig6)
 
+#---------------------------------------------------------------------------------------------------------------------------------------------------------------
 
+#---------------------------------------------------------------------------------------------------------------------------------------------------------------
 
+# Tellen van de duur per uitvoerder en gemeente (in plaats van aantal afspraken)
+    afspraken_per_uitvoerder = df.groupby(['uitvoerder', 'gemeente'])['duur'].sum().reset_index(name='totaal_duur')
 
+# Gemeente omzetten naar regio
+    afspraken_per_uitvoerder['regio'] = afspraken_per_uitvoerder['gemeente'].apply(gemeente_naar_regio)
+
+# Groeperen op uitvoerder, regio en gemeente
+    afspraken_per_uitvoerder = afspraken_per_uitvoerder.groupby(['uitvoerder', 'gemeente', 'regio'])['totaal_duur'].sum().reset_index()
+
+# **Filter op geselecteerde regio**
+    if selected_regio != "Alle regio's":
+        afspraken_per_uitvoerder = afspraken_per_uitvoerder[afspraken_per_uitvoerder['regio'] == selected_regio]
+        kleurvariabele = "gemeente"  # Als een regio is geselecteerd, kleur per gemeente
+    else:
+        kleurvariabele = "regio"  # Als alle regio's worden getoond, kleur per regio
+
+# Nieuwe plot maken
+    fig7 = px.bar(
+    afspraken_per_uitvoerder, 
+    x='uitvoerder', 
+    y='totaal_duur',  # Gebruik de som van de duur
+    color=kleurvariabele,  # Dynamische kleur
+    title="Aantal minuten per uitvoerder", 
+    labels={'uitvoerder': 'Uitvoerder', 'totaal_duur': 'Aantal minuten', kleurvariabele: kleurvariabele.capitalize()}, 
+    barmode='stack'  # Zorgt ervoor dat de gemeentes/regio's per uitvoerder gestapeld worden
+)
+
+    fig7.update_layout(xaxis_tickangle=-45)
+    st.plotly_chart(fig7)
+
+#---------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+#---------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 
 elif pagina == 'Voorspelling':
@@ -750,10 +806,22 @@ elif pagina == 'Voorspelling':
     # Toon de grafiek in Streamlit
     st.plotly_chart(fig)
 
-        # Voorspelling toggle (toon of verberg de voorspelling)
+# Initialize session state attribute if it doesn't exist
     if 'show_forecast' not in st.session_state:
-        st.session_state.show_forecast = False  # Initialiseer de sessie status
+        st.session_state.show_forecast = False  # Set initial value
 
+# Use the session state value to toggle the forecast
     if st.button('Voorspelling 2025'):
-        # Toggle de voorspelling
+    # Toggle the forecast visibility
         st.session_state.show_forecast = not st.session_state.show_forecast
+
+# Now access and use the value of show_forecast
+    if st.session_state.show_forecast:
+        fig.add_trace(go.Scatter(
+        x=df_future['Month'],
+        y=df_future['Value'],
+        mode='lines+markers',
+        name='2025 Voorspelling',
+        line=dict(dash='dot', color='black'),  # Zwarte lijn
+        hovertemplate="Maand: %{{x}}<br>Voorspelling: %{{y}}"
+    ))
