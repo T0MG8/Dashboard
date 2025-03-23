@@ -14,7 +14,8 @@ from sklearn.ensemble import RandomForestRegressor
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import mean_absolute_error
 
-
+if "show_forecast" not in st.session_state:
+    st.session_state.show_forecast = False  # Of True, afhankelijk van je logica
 
 
 # Sidebar met tabbladen
