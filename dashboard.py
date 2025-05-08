@@ -516,26 +516,6 @@ with tab2:
 
 #-------------------------------------------------------------------------------------------------------------------------------------------
 
-# Bereken het aantal unieke debiteuren per regio
-    df_unique_clients = factuur_filtered.groupby('regio')['debiteur'].nunique().reset_index()
-
-# Hernoem de kolommen voor duidelijkheid
-    df_unique_clients.columns = ['regio', 'aantal_unieke_clienten']
-
-# Maak het cirkeldiagram
-    fig10 = px.pie(df_unique_clients, 
-             names='regio', 
-             values='aantal_unieke_clienten', 
-             title="Aantal Unieke Cliënten per Regio tussen 2020 - 2025",
-             labels={'regio': 'Regio', 'aantal_unieke_clienten': 'Aantal Unieke Cliënten'})
-
-# Toon de grafiek in Streamlit
-    st.plotly_chart(fig10)
-
-
-
-
-
 with tab3:
     # Dataframes per jaar
     dataframes = {
