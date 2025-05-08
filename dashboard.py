@@ -434,7 +434,7 @@ with tab2:
     st.title("Kaart van Noord-Holland")
 
 # Voeg een slider toe om het jaar te selecteren
-    jaar = st.slider("Selecteer jaar", min_value=2020, max_value=2025, value=2024)
+    jaar = st.slider("Selecteer jaar", min_value=2020, max_value=2025, value=2025)
 
     factuur['jaar'] = factuur['factuurdatum'].dt.year
 
@@ -539,7 +539,7 @@ with tab3:
     st.title("Unieke cliënten per uitvoerder")
 
     # Slider voor het jaar
-    selected_year = st.slider("Kies een jaar:", min_value=2020, max_value=2025, value=2024)
+    selected_year = st.slider("Kies een jaar:", min_value=2020, max_value=2025, value=2025)
 
     df = dataframes[selected_year]
 
