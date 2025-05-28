@@ -4,7 +4,7 @@ import plotly.graph_objects as go
 import plotly.express as px
 import calendar
 import folium
-from streamlit_folium import st_folium
+from streamlit_folium import st_folium, folium_static
 import requests
 import json
 import geopandas as gpd
@@ -14,6 +14,7 @@ from sklearn.ensemble import RandomForestRegressor
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import mean_absolute_error
 import time
+from branca.colormap import linear
 
 # Meerdere accounts
 gebruikers = {
@@ -310,232 +311,163 @@ if st.session_state.ingelogd:
     #-------------------------------------------------------------------------------------------------------------------------------------------
 
         kleur_mapping = {
-        'Alkmaar': 'blue',
-        'Bergen (NH.)': 'blue',
-        'Castricum': 'blue',
-        'Dijk en Waard': 'blue',
-        'Heiloo': 'blue',
-        'Uitgeest': 'blue',
-        'Den Helder': 'green',
-        'Schagen': 'green',
-        'Texel': 'green',
-        'Hollands Kroon': 'green',
-        'Beverwijk': 'red',
-        'Heemskerk': 'red',
-        'Velsen': 'red',
-        'Drechterland': 'purple',
-        'Enkhuizen': 'purple',
-        'Hoorn': 'purple',
-        'Koggenland': 'purple',
-        'Medemblik': 'purple',
-        'Opmeer': 'purple',
-        'Stede Broec': 'purple',
-        'Bloemendaal': 'orange',
-        'Haarlem': 'orange',
-        'Heemstede': 'orange',
-        'Zandvoort': 'orange',
-        'Edam-Volendam': 'brown',
-        'Landsmeer': 'brown',
-        'Oostzaan': 'brown',
-        'Purmerend': 'brown',
-        'Waterland': 'brown',
-        'Wormerland': 'brown',
-        'Zaanstad': 'brown',
-        'Langedijk': 'brown',
-        'Beemster': 'brown',
-        'Heerhugowaard': 'brown',
-        'Amsterdam': 'pink'
-    }
+            'Alkmaar': 'blue',
+            'Bergen (NH.)': 'blue',
+            'Castricum': 'blue',
+            'Dijk en Waard': 'blue',
+            'Heiloo': 'blue',
+            'Uitgeest': 'blue',
+            'Den Helder': 'green',
+            'Schagen': 'green',
+            'Texel': 'green',
+            'Hollands Kroon': 'green',
+            'Beverwijk': 'red',
+            'Heemskerk': 'red',
+            'Velsen': 'red',
+            'Drechterland': 'purple',
+            'Enkhuizen': 'purple',
+            'Hoorn': 'purple',
+            'Koggenland': 'purple',
+            'Medemblik': 'purple',
+            'Opmeer': 'purple',
+            'Stede Broec': 'purple',
+            'Bloemendaal': 'orange',
+            'Haarlem': 'orange',
+            'Heemstede': 'orange',
+            'Zandvoort': 'orange',
+            'Edam-Volendam': 'brown',
+            'Landsmeer': 'brown',
+            'Oostzaan': 'brown',
+            'Purmerend': 'brown',
+            'Waterland': 'brown',
+            'Wormerland': 'brown',
+            'Zaanstad': 'brown',
+            'Langedijk': 'brown',
+            'Beemster': 'brown',
+            'Heerhugowaard': 'brown',
+            'Amsterdam': 'pink'
+        }
 
-    # Functie om de legenda toe te voegen
-        def add_categorical_legend(folium_map, title, colors, labels):
-            if len(colors) != len(labels):
-                raise ValueError("colors and labels must have the same length.")
-        
-            color_by_label = dict(zip(labels, colors))
-        
-            legend_categories = ""     
-            for label, color in color_by_label.items():
-                legend_categories += f"<li><span style='background:{color}'></span>{label}</li>"
-            
-            legend_html = f"""
-            <div id='maplegend' class='maplegend'>
-            <div class='legend-title'>{title}</div>
-            <div class='legend-scale'>
-                <ul class='legend-labels'>
-                {legend_categories}
-                </ul>
+        st.write("### **Hoeveelheid verstuurde facturen per maand per regio**")
+        keuze = st.radio("Kies visualisatie:", ["Kaart met cirkels", "Kaart met gebieden"])
+
+        if keuze == "Kaart met cirkels":
+            # Laad GeoJSON
+            with open("gemeente_coords.geojson", "r") as f:
+                gemeente_data = json.load(f)
+
+            jaar = st.slider("Selecteer jaar", 2020, 2025, 2025)
+            factuur_jaar = factuur[factuur['jaar'] == jaar]
+            gemeente_bedragen = factuur_jaar.groupby('debiteur')['toegewezen_bedrag'].sum().to_dict()
+
+            features = []
+            for feature in gemeente_data['features']:
+                gemeente = feature['properties']['name']
+                geometry = shape(feature['geometry'])
+                kleur = kleur_mapping.get(gemeente, 'gray')
+                bedrag = gemeente_bedragen.get(gemeente, 0)
+                schaal = 10
+                radius = math.sqrt(bedrag) * schaal if bedrag > 0 else 0
+
+                features.append({
+                    'geometry': geometry,
+                    'name': gemeente,
+                    'color': kleur,
+                    'radius': radius
+                })
+
+            gdf = gpd.GeoDataFrame(features)
+            gdf.set_crs("EPSG:4326", allow_override=True, inplace=True)
+
+            def create_map():
+                m = folium.Map(location=[52.7, 4.85], zoom_start=9)
+                for _, row in gdf.iterrows():
+                    lat, lon = row['geometry'].centroid.y, row['geometry'].centroid.x
+                    if row['radius'] > 0:
+                        folium.Circle(
+                            location=[lat, lon],
+                            radius=row['radius'],
+                            color=row['color'],
+                            fill=True,
+                            fill_color=row['color'],
+                            fill_opacity=0.5,
+                            popup=f"{row['name']}: €{gemeente_bedragen.get(row['name'], 0):,.2f}"
+                        ).add_to(m)
+                return m
+
+            m = create_map()
+            st_folium(m, width=700, height=500)
+
+            # Legenda
+            st.markdown("""
+            <div style='font-size:14px'>
+            <div style='display:inline-block; width:10px; height:10px; background:blue; border-radius:50%; margin-right:5px;'></div> Regio Alkmaar
+            <div style='display:inline-block; width:10px; height:10px; background:green; border-radius:50%; margin-right:5px; margin-left:20px;'></div> Kop van Noord-Holland<br>
+            <div style='display:inline-block; width:10px; height:10px; background:red; border-radius:50%; margin-right:5px;'></div> Regio IJmond
+            <div style='display:inline-block; width:10px; height:10px; background:purple; border-radius:50%; margin-right:5px; margin-left:20px;'></div> West-Friesland<br>
+            <div style='display:inline-block; width:10px; height:10px; background:orange; border-radius:50%; margin-right:5px;'></div> Zuid Kennermerland
+            <div style='display:inline-block; width:10px; height:10px; background:brown; border-radius:50%; margin-right:5px; margin-left:20px;'></div> Zaanstreek-Waterland<br>
+            <div style='display:inline-block; width:10px; height:10px; background:pink; border-radius:50%; margin-right:5px;'></div> Regio Amsterdam-Amstelland
             </div>
-            </div>
-            """
+            """, unsafe_allow_html=True)
 
-            script = f"""
-                <script type="text/javascript">
-                var oneTimeExecution = (function() {{
-                            var executed = false;
-                            return function() {{
-                                if (!executed) {{
-                                    var checkExist = setInterval(function() {{
-                                            if (document.getElementsByClassName('leaflet-top leaflet-right').length) {{
-                                                document.getElementsByClassName('leaflet-top leaflet-right')[0].style.display = "flex";
-                                                document.getElementsByClassName('leaflet-top leaflet-right')[0].style.flexDirection = "column";
-                                                document.getElementsByClassName('leaflet-top leaflet-right')[0].innerHTML += `{legend_html}`;
-                                                clearInterval(checkExist);
-                                                executed = true;
-                                            }}
-                                            }}, 100);
-                                }}
-                            }};
-                        }})();
-                oneTimeExecution()
-                </script>
-            """
+        elif keuze == "Kaart met gebieden":
+            jaar = st.slider("Selecteer jaar", 2020, 2025, 2025)
 
-            css = """
-            <style type='text/css'>
-            .maplegend {
-                z-index:9999;
-                float:right;
-                background-color: rgba(255, 255, 255, 1);
-                border-radius: 5px;
-                border: 2px solid #bbb;
-                padding: 10px;
-                font-size:12px;
-                position: relative;
-            }
-            .maplegend .legend-title {
-                text-align: left;
-                margin-bottom: 5px;
-                font-weight: bold;
-                font-size: 90%;
+            # Filter factuur op gekozen jaar
+            factuur_jaar = factuur[factuur['jaar'] == jaar]
+
+            drukte_per_land = factuur_jaar.groupby('debiteur')['toegewezen_bedrag'].sum().to_dict()
+
+            # Ophalen van de GeoJSON
+            url = 'https://cartomap.github.io/nl/wgs84/gemeente_2025.geojson'
+            response = requests.get(url)
+            geojson_data = response.json()
+
+            # Filter de features op basis van 'statnaam' die voorkomen in drukte_per_land
+            filtered_features = [
+                feature for feature in geojson_data['features']
+                if feature['properties']['statnaam'] in drukte_per_land
+            ]
+
+            # Normaliseer de drukte voor kleurgebruik
+            max_value = max(drukte_per_land.values()) if drukte_per_land else 1
+            colormap = linear.Reds_09.scale(0, max_value)
+
+            # Style functie voor kleuren op basis van toegewezen bedrag
+            def style_function(feature):
+                gemeente = feature['properties']['statnaam']
+                waarde = drukte_per_land.get(gemeente, 0)
+                return {
+                    'fillColor': colormap(waarde),
+                    'color': 'black',
+                    'weight': 1,
+                    'fillOpacity': 0.7,
                 }
-            .maplegend .legend-scale ul {
-                margin: 0;
-                margin-bottom: 5px;
-                padding: 0;
-                float: left;
-                list-style: none;
-                }
-            .maplegend .legend-scale ul li {
-                font-size: 80%;
-                list-style: none;
-                margin-left: 0;
-                line-height: 18px;
-                margin-bottom: 2px;
-                }
-            .maplegend ul.legend-labels li span {
-                display: block;
-                float: left;
-                height: 16px;
-                width: 30px;
-                margin-right: 5px;
-                margin-left: 0;
-                border: 0px solid #ccc;
-                }
-            .maplegend .legend-source {
-                font-size: 80%;
-                color: #777;
-                clear: both;
-                }
-            .maplegend a {
-                color: #777;
-                }
-            </style>
-            """
 
-            # Voeg script en CSS toe aan de map
-            folium_map.get_root().header.add_child(folium.Element(script + css))
+            # Maak de kaart
+            m = folium.Map(location=[52.75, 4.7410], zoom_start=9)
 
-            return folium_map
+            # Voeg elke feature met eigen popup en style toe
+            for feature in filtered_features:
+                gemeente = feature['properties']['statnaam']
+                bedrag = drukte_per_land.get(gemeente, 0)
+                bedrag_str = f"€ {bedrag:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.')
+                popup_html = f"<strong>{gemeente}</strong><br>Toegewezen bedrag: {bedrag_str}"
 
+                geojson = folium.GeoJson(
+                    data=feature,
+                    style_function=style_function,
+                    tooltip=folium.Tooltip(gemeente),
+                    popup=folium.Popup(popup_html, max_width=300)
+                )
+                geojson.add_to(m)
 
-    # Laad het GeoJSON bestand
-        file_path = 'gemeente_coords.geojson'
+            # Voeg legenda toe
+            colormap.caption = 'Toegewezen bedrag per gemeente'
+            colormap.add_to(m)
 
-        with open(file_path, 'r') as f:
-            gemeente_data = json.load(f)
-
-    # Streamlit UI
-        st.write("**Hoeveelheid verstuurde facturen per maand per regio**")
-
-    # Voeg een slider toe om het jaar te selecteren
-        jaar = st.slider("Selecteer jaar", min_value=2020, max_value=2025, value=2025)
-
-        factuur['jaar'] = factuur['factuurdatum'].dt.year
-
-    # Filter de factuurgegevens op basis van het geselecteerde jaar
-        factuur_jaar = factuur[factuur['jaar'] == jaar]
-
-    # Aggregatie van bedragen per gemeente voor het geselecteerde jaar
-        gemeente_bedragen = factuur_jaar.groupby('debiteur')['toegewezen_bedrag'].sum().to_dict()
-    # Maak een lijst van geometrieën en properties
-        features = []
-        for feature in gemeente_data['features']:
-            gemeente = feature['properties']['name']
-            geometry = shape(feature['geometry'])
-
-        # Zoek bijbehorende kleur uit de mapping
-            gemeente_kleur = kleur_mapping.get(gemeente, 'gray')  # Default is 'gray' als de gemeente niet wordt gevonden
-
-        # Bepaal de grootte op basis van het toegewezen bedrag
-            bedrag = gemeente_bedragen.get(gemeente, 0)  # Standaard 0 als gemeente niet voorkomt
-            schaal_factor = 10  # Pas aan voor de juiste schaal
-            radius = math.sqrt(bedrag) * schaal_factor
-
-
-            features.append({
-            'geometry': geometry,
-            'name': gemeente,
-            'color': gemeente_kleur,
-            'radius': radius
-        })
-
-
-    # Maak een GeoDataFrame
-        gdf = gpd.GeoDataFrame(features)
-        gdf.set_crs("EPSG:4326", allow_override=True, inplace=True)
-
-        def create_map():
-            m = folium.Map(location=[52.7, 4.85], zoom_start=9)
-
-            for _, row in gdf.iterrows():
-                lat, lon = row['geometry'].centroid.y, row['geometry'].centroid.x
-                folium.Circle(
-                    location=[lat, lon],
-                    radius=row['radius'],
-                    color=row['color'],
-                    fill=True,
-                    fill_color=row['color'],
-                    fill_opacity=0.5,
-                    popup=f"{row['name']}: €{gemeente_bedragen.get(row['name'], 0):,.2f}"
-                ).add_to(m)
-
-        # Voeg hier de legenda toe
-            labels = list(kleur_mapping.keys())  # Gemeenten zijn de labels
-            colors = list(kleur_mapping.values())  # Kleuren die we gebruiken
-            m = add_categorical_legend(m, "Gemeente Kleur Legenda", colors, labels)
-
-            return m
-
-
-    # Toon de kaart in Streamlit
-        m = create_map()
-        st_folium(m, width=700, height=500)
-
-    # HTML en CSS voor verschillende gekleurde cirkels
-        blue_circle = '<div style="width: 10px; height: 10px; background-color: blue; border-radius: 50%; display: inline-block;"></div>'
-        green_circle = '<div style="width: 10px; height: 10px; background-color: green; border-radius: 50%; display: inline-block;"></div>'
-        red_circle = '<div style="width: 10px; height: 10px; background-color: red; border-radius: 50%; display: inline-block;"></div>'
-        purple_circle = '<div style="width: 10px; height: 10px; background-color: purple; border-radius: 50%; display: inline-block;"></div>'
-        orange_circle = '<div style="width: 10px; height: 10px; background-color: orange; border-radius: 50%; display: inline-block;"></div>'
-        brown_circle = '<div style="width: 10px; height: 10px; background-color: brown; border-radius: 50%; display: inline-block;"></div>'
-        pink_circle = '<div style="width: 10px; height: 10px; background-color: pink; border-radius: 50%; display: inline-block;"></div>'
-
-    # Vervang de cirkels en gebruik <br> voor line breaks
-        st.markdown(f"""
-        {blue_circle} Regio Alkmaar | {green_circle} Kop van Noord-Holland | {red_circle} Regio IJmond | {purple_circle} West-Friesland | <br>
-        {orange_circle} Zuid Kennermerland | {brown_circle} Regio Zaanstreek Waterland | {pink_circle} Regio Amsterdam-Amstelland <br>
-        """, unsafe_allow_html=True)
+            folium_static(m, width=700, height=500)
 
     #-------------------------------------------------------------------------------------------------------------------------------------------
 
