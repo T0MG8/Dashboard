@@ -33,7 +33,7 @@ if st.session_state.ingelogd:
 
     # Data inladen
     @st.cache_data
-    def load_data_afspraken():
+    def data():
         afspraken2020 = pd.read_excel('afspraken 2020.xlsx') 
         afspraken2021 = pd.read_excel('afspraken 2021.xlsx') 
         afspraken2022 = pd.read_excel('afspraken 2022.xlsx') 
@@ -42,7 +42,7 @@ if st.session_state.ingelogd:
         afspraken2025 = pd.read_excel('afspraken 2025.xlsx')
         return afspraken2020, afspraken2021, afspraken2022, afspraken2023, afspraken2024, afspraken2025
 
-    afspraken2020, afspraken2021, afspraken2022, afspraken2023, afspraken2024, afspraken2025 = load_data_afspraken()
+    afspraken2020, afspraken2021, afspraken2022, afspraken2023, afspraken2024, afspraken2025 = data()
 
     @st.cache_data
     def load_data_factuur():
@@ -72,6 +72,10 @@ if st.session_state.ingelogd:
     }
 
     with tab1:
+
+        st.title("Afspraken")
+        st.write("In dit tabblad krijg je inzicht in het aantal gehouden afspraken, de bestede minuten door behandelaren en het aantal verstuurde facturen per maand. Met de jaarslider kun je de gegevens filteren voor de jaren 2020 tot 2025. Via de legenda kun je specifieke jaren aan- of uitzetten voor gerichte vergelijking.")
+
         # Gebruik select_slider in plaats van slider
         start_month_name, end_month_name = st.select_slider(
             "Selecteer de maanden", 
@@ -110,7 +114,7 @@ if st.session_state.ingelogd:
             ))
 
         fig.update_layout(
-            title="Aantal afspraken per maand",
+            title="Aantal gehouden afspraken per maand",
             xaxis=dict(
                 title="Maand", 
                 tickmode='array', 
@@ -150,7 +154,7 @@ if st.session_state.ingelogd:
                     color='jaar',
                     markers=True)
 
-        fig1.update_layout(title="Totaalbedrag van verstuurde facturen per maand",
+        fig1.update_layout(title="Hoeveelheid verstuurde facturen per maand",
             xaxis=dict(
                 tickmode='array', 
                 tickvals=list(range(1, 13)), 
@@ -196,7 +200,7 @@ if st.session_state.ingelogd:
                     markers=True)
 
         fig2.update_layout(
-            title="Aantal minuten per maand per jaar",
+            title="Aantal gehouden minuten per maand",
             xaxis=dict(
                 tickmode='array', 
                 tickvals=list(range(1, 13)), 
@@ -217,7 +221,8 @@ if st.session_state.ingelogd:
 
     with tab2:
         # Zet de titel
-        st.title("Facturen per gemeente per maand")
+        st.title("Gemeentes")
+        st.write("In dit tabblad kun je het aantal verstuurde facturen in detail bekijken, verdeeld over regio's en gemeentes. Gebruik de jaarslider en maandselectie om verschillen in de tijd en tussen gebieden te analyseren. De grafiek toont het aantal facturen per gemeente per maand. Via de legenda kun je specifieke regio's aan- of uitzetten voor gerichte vergelijking. De kaart visualiseert het aantal facturen per regio, waarbij een grotere cirkel een hoger bedrag vertegenwoordigt.")
 
         # Correcte lijst van jaar-maanden
         jaarmaanden = [
@@ -292,7 +297,7 @@ if st.session_state.ingelogd:
                     y='toegewezen_bedrag', 
                     color='regio', 
                     markers=True,
-                    title="Facturen per regio per maand",
+                    title="Hoeveelheid verstuurde facturen per maand per gemeente",
                     labels={'maand': 'Maand', 'toegewezen_bedrag': 'Toegewezen Bedrag (€)', 'regio': 'Regio'})
 
         # Toon de grafiek in Streamlit
@@ -450,7 +455,7 @@ if st.session_state.ingelogd:
             gemeente_data = json.load(f)
 
     # Streamlit UI
-        st.title("Kaart van Noord-Holland")
+        st.write("**Hoeveelheid verstuurde facturen per maand per regio**")
 
     # Voeg een slider toe om het jaar te selecteren
         jaar = st.slider("Selecteer jaar", min_value=2020, max_value=2025, value=2025)
@@ -555,7 +560,8 @@ if st.session_state.ingelogd:
             ).rename(columns={'debiteur': 'gemeente'})
 
         # Streamlit UI
-        st.title("Unieke cliënten per uitvoerder")
+        st.title("Behandelaren")
+        st.write("Dit tabblad biedt inzicht in de werkdruk en cliëntenverdeling van behandelaren per regio en gemeente. Gebruik de jaarslider om resultaten over de jaren 2020 tot 2025 te bekijken en selecteer een specifieke regio voor een gerichte analyse. Via de legenda kun je specifieke regio's aan- of uitzetten voor gerichte vergelijking.")
 
         # Slider voor het jaar
         selected_year = st.slider("Kies een jaar:", min_value=2020, max_value=2025, value=2025)
@@ -607,7 +613,7 @@ if st.session_state.ingelogd:
             x='uitvoerder', 
             y='clienten_aanwezig', 
             color=kleurvariabele, 
-            title="Unieke cliënten per uitvoerder", 
+            title="Aantal cliënten per behandelaar per regio/gemeente", 
             labels={'uitvoerder': 'Uitvoerder', 'clienten_aanwezig': 'Aantal unieke cliënten', kleurvariabele: kleurvariabele.capitalize()}, 
             barmode='stack'  
         )
@@ -644,7 +650,7 @@ if st.session_state.ingelogd:
             x='uitvoerder', 
             y='aantal_afspraken', 
             color=kleurvariabele,  # Dynamische kleur
-            title="Aantal afspraken per uitvoerder", 
+            title="Aantal gehouden afspraken per behandelaar per regio/gemeente", 
             labels={'uitvoerder': 'Uitvoerder', 'aantal_afspraken': 'Aantal afspraken', kleurvariabele: kleurvariabele.capitalize()}, 
             barmode='stack'  # Zorgt ervoor dat de gemeentes/regio's per uitvoerder gestapeld worden
     )
@@ -678,7 +684,7 @@ if st.session_state.ingelogd:
         x='uitvoerder', 
         y='totaal_duur',  # Gebruik de som van de duur
         color=kleurvariabele,  # Dynamische kleur
-        title="Aantal minuten per uitvoerder", 
+        title="Aantal gehouden minuten per behandelaar per regio/gemeente", 
         labels={'uitvoerder': 'Uitvoerder', 'totaal_duur': 'Aantal minuten', kleurvariabele: kleurvariabele.capitalize()}, 
         barmode='stack'  # Zorgt ervoor dat de gemeentes/regio's per uitvoerder gestapeld worden
     )
