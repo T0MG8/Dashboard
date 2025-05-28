@@ -17,7 +17,8 @@ import time
 
 # Meerdere accounts
 gebruikers = {
-    "admin": "OV2025!"
+    "admin": "OV2025!",
+    "q": "q"
 }
 
 # Sessietoestand voor inloggen
