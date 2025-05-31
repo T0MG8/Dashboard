@@ -31,7 +31,7 @@ if 'gebruiker' not in st.session_state:
 # Als ingelogd, toon de tabs en laad data
 if st.session_state.ingelogd:
 # Sidebar met tabbladen
-    tab1, tab2, tab3 = st.tabs(['Afspraken', 'Gemeentes', 'Behandelaren'])
+    tab1, tab2, tab3, tab4 = st.tabs(['Afspraken', 'Gemeentes', 'Behandelaren', 'Test'])
 
     # Data inladen
     @st.cache_data
@@ -514,6 +514,16 @@ if st.session_state.ingelogd:
             'Regio Amsterdam-Amstelland': ['Amsterdam']
         }
 
+        regio_kleuren = {
+    'Regio Alkmaar': '#A0C4FF',
+    'Kop van Noord-Holland': '#0077CC',
+    'West Friesland': '#FF4D4D',
+    'Zuid Kennermerland': '#FFB347',
+    'Regio IJmond': '#A3D977',
+    'Regio Zaanstreek Waterland': '#00C49A',
+    'Regio Amsterdam-Amstelland': '#FFD700'
+        }
+
         # Mapping van gemeente naar regio
         def gemeente_naar_regio(gemeente):
             for regio, gemeentes in dic.items():
@@ -629,6 +639,413 @@ if st.session_state.ingelogd:
 
 #---------------------------------------------------------------------------------------------------------------------------------------------------------------
 
+with tab4:
+
+    maanden = ['Januari', 'Februari', 'Maart', 'April', 'Mei', 'Juni',
+                'Juli', 'Augustus', 'September', 'Oktober', 'November', 'December']
+
+        # Mapping van maandnummer naar maandnaam
+    maand_mapping = {i + 1: maanden[i] for i in range(len(maanden))}
+
+        # Lijst van dataframes en corresponderende jaartallen
+    dataframes = {
+            2020: afspraken2020,
+            2021: afspraken2021,
+            2022: afspraken2022,
+            2023: afspraken2023,
+            2024: afspraken2024,
+            2025: afspraken2025
+        }
+
+    st.title("Dyslexiezorg VS BlinkUit")
+    st.write("In dit tabblad krijg je inzicht in het verschil tussen de dyslexiezorg en Blinkuit. Als je met de muis over de titel van de grafieken beweegt en op '⛶' klikt, wordt de grafiek vergroot weergegeven. Druk op 'Esc' om deze weer te verkleinen. Dit tabblad is om te kunnen testen.")
+    st.write("### Afspraken")
+        # Maandselectie
+    start_month_name, end_month_name = st.select_slider(
+            "Selecteer de maanden", 
+            options=maanden, 
+            value=(maanden[0], maanden[11]), 
+            key="maand_slider_tab4",
+            help="Selecteer een periode van maanden van het jaar"
+        )
+
+    start_month = maanden.index(start_month_name) + 1
+    end_month = maanden.index(end_month_name) + 1
+
+        # Maak twee kolommen aan
+    col1, col2 = st.columns(2)
+
+        # ------------------ GRAAF: BlinkUit ------------------
+    with col1:
+        fig_BlinkUit = go.Figure()
+
+        for year, df in dataframes.items():
+            df = df.copy()
+            df = df[df['afspraaksoort'].notna()]
+            df['datum'] = pd.to_datetime(df['datum'], format='%d-%m-%Y')
+            df['maand'] = df['datum'].dt.month
+
+            BlinkUit_df = df[
+                    (df['maand'] >= start_month) & 
+                    (df['maand'] <= end_month) & 
+                    (df['afspraaksoort'].str.startswith('Z HB'))
+                ]
+
+            totaal_afspraken = BlinkUit_df.shape[0]
+            maand_telling = BlinkUit_df['maand'].value_counts().sort_index()
+
+            fig_BlinkUit.add_trace(go.Scatter(
+                    x=maand_telling.index,
+                    y=maand_telling.values,
+                    mode='lines+markers',
+                    name=f'{year}',
+                    hovertemplate=f"Maand: %{{x}}<br>Aantal: %{{y}}<br>Totaal {year}: {totaal_afspraken}"
+                ))
+
+        fig_BlinkUit.update_layout(
+                title="Aantal afspraken per maand (BlinkUit)",
+                xaxis=dict(
+                    title="Maand", 
+                    tickmode='array', 
+                    tickvals=list(range(1, 13)), 
+                    ticktext=maanden
+                ),
+                yaxis_title="Aantal afspraken",
+                legend_title="Jaar",
+                height=500
+            )
+
+        st.plotly_chart(fig_BlinkUit, use_container_width=True)
+
+        # ------------------ GRAAF: Dyslexiezorg ------------------
+    with col2:
+        fig_dyslexie = go.Figure()
+
+        for year, df in dataframes.items():
+            df = df.copy()
+            df = df[df['afspraaksoort'].notna()]
+            df['datum'] = pd.to_datetime(df['datum'], format='%d-%m-%Y')
+            df['maand'] = df['datum'].dt.month
+
+            dys_df = df[
+                (df['maand'] >= start_month) & 
+                (df['maand'] <= end_month) & 
+                (~df['afspraaksoort'].str.startswith('Z HB'))
+                ]
+
+            totaal_afspraken = dys_df.shape[0]
+            maand_telling = dys_df['maand'].value_counts().sort_index()
+
+            fig_dyslexie.add_trace(go.Scatter(
+                    x=maand_telling.index,
+                    y=maand_telling.values,
+                    mode='lines+markers',
+                    name=f'{year}',
+                    hovertemplate=f"Maand: %{{x}}<br>Aantal: %{{y}}<br>Totaal {year}: {totaal_afspraken}"
+                ))
+
+        fig_dyslexie.update_layout(
+                title="Aantal afspraken per maand (Dyslexiezorg)",
+                xaxis=dict(
+                    title="Maand", 
+                    tickmode='array', 
+                    tickvals=list(range(1, 13)), 
+                    ticktext=maanden
+                ),
+                yaxis_title="Aantal afspraken",
+                legend_title="Jaar",
+                height=500
+            )
+
+        st.plotly_chart(fig_dyslexie, use_container_width=True)
+
+
+    st.write("### Behandelaren")
+
+    for jaar in dataframes.keys():
+        dataframes[jaar] = dataframes[jaar].merge(
+            factuur[['clientcode', 'debiteur']], 
+            left_on='clienten_aanwezig', 
+            right_on='clientcode', 
+            how='left'
+        ).rename(columns={'debiteur': 'gemeente'})
+
+    selected_year = st.slider("Kies een jaar:", min_value=2020, max_value=2025, value=2025, key="jaar_slider_tab4")
+    df = dataframes[selected_year]
+
+    dic = {
+            'Regio Alkmaar': ['Alkmaar', 'Bergen (NH.)', 'Castricum', 'Dijk en Waard', 'Heiloo', 'Uitgeest'],
+            'Kop van Noord-Holland': ['Den Helder', 'Schagen', 'Texel', 'Hollands Kroon'],
+            'Regio IJmond': ['Beverwijk', 'Heemskerk', 'Velsen'],
+            'West Friesland': ['Drechterland', 'Enkhuizen', 'Hoorn', 'Koggenland', 'Medemblik', 'Opmeer', 'Stede Broec'],
+            'Zuid Kennermerland': ['Bloemendaal', 'Haarlem', 'Heemstede', 'Zandvoort'],
+            'Regio Zaanstreek Waterland': ['Edam-Volendam', 'Landsmeer', 'Oostzaan', 'Purmerend', 'Waterland', 'Wormerland', 'Zaanstad', 'Langedijk', 'Beemster', 'Heerhugowaard'],
+            'Regio Amsterdam-Amstelland': ['Amsterdam']
+        }
+    
+    regio_kleuren = {
+    'Regio Alkmaar': '#A0C4FF',
+    'Kop van Noord-Holland': '#0077CC',
+    'West Friesland': '#FF4D4D',
+    'Zuid Kennermerland': '#FFB347',
+    'Regio IJmond': '#A3D977',
+    'Regio Zaanstreek Waterland': '#00C49A',
+    'Regio Amsterdam-Amstelland': '#FFD700'
+    }
+
+    def gemeente_naar_regio(gemeente):
+        for regio, gemeentes in dic.items():
+            if gemeente in gemeentes:
+                return regio
+        return "Onbekend"
+
+    regio_keuzes = ["Alle regio's"] + list(dic.keys())
+    selected_regio = st.selectbox("Selecteer een regio:", regio_keuzes, key="regio_selectbox_tab4")
+
+    col1, col2 = st.columns(2)
+
+    with col1:
+        df_geert = df[df['afspraaksoort'].str.startswith("Z HB", na=False)]
+        uitvoerder_counts_geert = df_geert.groupby(['uitvoerder', 'gemeente'])['clienten_aanwezig'].nunique().reset_index()
+        uitvoerder_counts_geert['regio'] = uitvoerder_counts_geert['gemeente'].apply(gemeente_naar_regio)
+
+        if selected_regio != "Alle regio's":
+            uitvoerder_counts_geert = uitvoerder_counts_geert[uitvoerder_counts_geert['regio'] == selected_regio]
+            kleurvariabele = "gemeente"
+            customdata = uitvoerder_counts_geert[['gemeente']].values
+        else:
+            kleurvariabele = "regio"
+            uitvoerder_counts_geert = uitvoerder_counts_geert.groupby(["uitvoerder", "regio"])["clienten_aanwezig"].sum().reset_index()
+            customdata = uitvoerder_counts_geert[['regio']].values
+
+        fig_geert = px.bar(
+                uitvoerder_counts_geert,
+                x='uitvoerder',
+                y='clienten_aanwezig',
+                color=kleurvariabele,
+                title="Aantal cliënten per behandelaar (BlinkUit)",
+                labels={'uitvoerder': 'Uitvoerder', 'clienten_aanwezig': 'Aantal unieke cliënten', kleurvariabele: kleurvariabele.capitalize()},
+                barmode='stack'
+            )
+
+        fig_geert.update_traces(hovertemplate="Aantal unieke cliënten: %{y}<br>Uitvoerder: %{x}", customdata=customdata)
+        fig_geert.update_layout(xaxis_tickangle=-45, height=600)
+        st.plotly_chart(fig_geert, use_container_width=True)
+
+    with col2:
+        df_dys = df[~df['afspraaksoort'].str.startswith("Z HB", na=False)]
+        uitvoerder_counts_dys = df_dys.groupby(['uitvoerder', 'gemeente'])['clienten_aanwezig'].nunique().reset_index()
+        uitvoerder_counts_dys['regio'] = uitvoerder_counts_dys['gemeente'].apply(gemeente_naar_regio)
+
+        if selected_regio != "Alle regio's":
+            uitvoerder_counts_dys = uitvoerder_counts_dys[uitvoerder_counts_dys['regio'] == selected_regio]
+            kleurvariabele = "gemeente"
+            customdata = uitvoerder_counts_dys[['gemeente']].values
+        else:
+            kleurvariabele = "regio"
+            uitvoerder_counts_dys = uitvoerder_counts_dys.groupby(["uitvoerder", "regio"])["clienten_aanwezig"].sum().reset_index()
+            customdata = uitvoerder_counts_dys[['regio']].values
+
+        fig_dys = px.bar(
+                uitvoerder_counts_dys,
+                x='uitvoerder',
+                y='clienten_aanwezig',
+                color=kleurvariabele,
+                title="Aantal cliënten per behandelaar (Dyslexiezorg)",
+                labels={'uitvoerder': 'Uitvoerder', 'clienten_aanwezig': 'Aantal unieke cliënten', kleurvariabele: kleurvariabele.capitalize()},
+                barmode='stack'
+            )
+
+        fig_dys.update_traces(hovertemplate="Aantal unieke cliënten: %{y}<br>Uitvoerder: %{x}", customdata=customdata)
+        fig_dys.update_layout(xaxis_tickangle=-45, height=600)
+        st.plotly_chart(fig_dys, use_container_width=True)
+
+
+
+    # Afspraken per uitvoerder, gesplitst in Geert en Dyslexiezorg
+    col1, col2 = st.columns(2)
+
+    with col1:
+        df_geert = df[df['afspraaksoort'].str.startswith("Z HB", na=False)]
+
+        afspraken_per_uitvoerder_geert = df_geert.groupby(['uitvoerder', 'gemeente']).size().reset_index(name='aantal_afspraken')
+        afspraken_per_uitvoerder_geert['regio'] = afspraken_per_uitvoerder_geert['gemeente'].apply(gemeente_naar_regio)
+        afspraken_per_uitvoerder_geert = afspraken_per_uitvoerder_geert.groupby(['uitvoerder', 'gemeente', 'regio'])['aantal_afspraken'].sum().reset_index()
+
+        if selected_regio != "Alle regio's":
+            afspraken_per_uitvoerder_geert = afspraken_per_uitvoerder_geert[afspraken_per_uitvoerder_geert['regio'] == selected_regio]
+            kleurvariabele = "gemeente"
+        else:
+            kleurvariabele = "regio"
+
+        fig_geert = px.bar(
+            afspraken_per_uitvoerder_geert,
+            x='uitvoerder',
+            y='aantal_afspraken',
+            color=kleurvariabele,
+            title="Aantal gehouden afspraken (BlinkUit)",
+            labels={'uitvoerder': 'Uitvoerder', 'aantal_afspraken': 'Aantal afspraken', kleurvariabele: kleurvariabele.capitalize()},
+            barmode='stack'
+        )
+        fig_geert.update_layout(xaxis_tickangle=-45, height=600)
+        st.plotly_chart(fig_geert, use_container_width=True)
+
+    with col2:
+        df_dys = df[~df['afspraaksoort'].str.startswith("Z HB", na=False)]
+
+        afspraken_per_uitvoerder_dys = df_dys.groupby(['uitvoerder', 'gemeente']).size().reset_index(name='aantal_afspraken')
+        afspraken_per_uitvoerder_dys['regio'] = afspraken_per_uitvoerder_dys['gemeente'].apply(gemeente_naar_regio)
+        afspraken_per_uitvoerder_dys = afspraken_per_uitvoerder_dys.groupby(['uitvoerder', 'gemeente', 'regio'])['aantal_afspraken'].sum().reset_index()
+
+        if selected_regio != "Alle regio's":
+            afspraken_per_uitvoerder_dys = afspraken_per_uitvoerder_dys[afspraken_per_uitvoerder_dys['regio'] == selected_regio]
+            kleurvariabele = "gemeente"
+        else:
+            kleurvariabele = "regio"
+
+        fig_dys = px.bar(
+            afspraken_per_uitvoerder_dys,
+            x='uitvoerder',
+            y='aantal_afspraken',
+            color=kleurvariabele,
+            title="Aantal gehouden afspraken (Dyslexiezorg)",
+            labels={'uitvoerder': 'Uitvoerder', 'aantal_afspraken': 'Aantal afspraken', kleurvariabele: kleurvariabele.capitalize()},
+            barmode='stack'
+        )
+        fig_dys.update_layout(xaxis_tickangle=-45, height=600)
+        st.plotly_chart(fig_dys, use_container_width=True)
+
+
+    # Duur van afspraken per uitvoerder, gesplitst in Geert en Dyslexiezorg
+    col1, col2 = st.columns(2)
+
+    with col1:
+
+        df_geert = df[df['afspraaksoort'].str.startswith("Z HB", na=False)]
+
+        afspraken_duur_geert = df_geert.groupby(['uitvoerder', 'gemeente'])['duur'].sum().reset_index(name='totaal_duur')
+        afspraken_duur_geert['regio'] = afspraken_duur_geert['gemeente'].apply(gemeente_naar_regio)
+        afspraken_duur_geert = afspraken_duur_geert.groupby(['uitvoerder', 'gemeente', 'regio'])['totaal_duur'].sum().reset_index()
+
+        if selected_regio != "Alle regio's":
+            afspraken_duur_geert = afspraken_duur_geert[afspraken_duur_geert['regio'] == selected_regio]
+            kleurvariabele = "gemeente"
+        else:
+            kleurvariabele = "regio"
+
+        fig_geert_minuten = px.bar(
+            afspraken_duur_geert,
+            x='uitvoerder',
+            y='totaal_duur',
+            color=kleurvariabele,
+            title="Totaal aantal minuten (BlinkUit)",
+            labels={'uitvoerder': 'Uitvoerder', 'totaal_duur': 'Aantal minuten', kleurvariabele: kleurvariabele.capitalize()},
+            barmode='stack'
+        )
+        fig_geert_minuten.update_layout(xaxis_tickangle=-45, height=600)
+        st.plotly_chart(fig_geert_minuten, use_container_width=True)
+
+    with col2:
+        df_dys = df[~df['afspraaksoort'].str.startswith("Z HB", na=False)]
+
+        afspraken_duur_dys = df_dys.groupby(['uitvoerder', 'gemeente'])['duur'].sum().reset_index(name='totaal_duur')
+        afspraken_duur_dys['regio'] = afspraken_duur_dys['gemeente'].apply(gemeente_naar_regio)
+        afspraken_duur_dys = afspraken_duur_dys.groupby(['uitvoerder', 'gemeente', 'regio'])['totaal_duur'].sum().reset_index()
+
+        if selected_regio != "Alle regio's":
+            afspraken_duur_dys = afspraken_duur_dys[afspraken_duur_dys['regio'] == selected_regio]
+            kleurvariabele = "gemeente"
+        else:
+            kleurvariabele = "regio"
+
+        fig_dys_minuten = px.bar(
+            afspraken_duur_dys,
+            x='uitvoerder',
+            y='totaal_duur',
+            color=kleurvariabele,
+            title="Totaal aantal minuten (Dyslexiezorg)",
+            labels={'uitvoerder': 'Uitvoerder', 'totaal_duur': 'Aantal minuten', kleurvariabele: kleurvariabele.capitalize()},
+            barmode='stack'
+        )
+        fig_dys_minuten.update_layout(xaxis_tickangle=-45, height=600)
+        st.plotly_chart(fig_dys_minuten, use_container_width=True)
+
+    
+
+    with col1:
+        df_geert = df[df['afspraaksoort'].str.startswith("Z HB", na=False)]
+        df_geert['regio'] = df_geert['gemeente'].apply(gemeente_naar_regio)
+
+        # Onbekend eventueel uitsluiten:
+        # df_geert = df_geert[df_geert['regio'] != 'Onbekend']
+
+        if selected_regio != "Alle regio's":
+            df_geert = df_geert[df_geert['regio'] == selected_regio]
+            group_col = "gemeente"
+        else:
+            group_col = "regio"
+
+        data_geert = df_geert.groupby(group_col)['clienten_aanwezig'].nunique().reset_index()
+        data_geert.columns = [group_col, 'aantal_clienten']
+
+        fig_geert = px.pie(
+            data_geert,
+            names=group_col,
+            values='aantal_clienten',
+            title=f"Aantal cliënten per {group_col} (BlinkUit)",
+            hole=0.4,
+            color=group_col,
+            color_discrete_map=regio_kleuren
+        )
+
+        fig_geert.update_traces(
+            textinfo='value',
+            hovertemplate=f"{group_col}: %{{label}}<br>Aantal cliënten: %{{value}}"
+        )
+
+        st.plotly_chart(fig_geert, use_container_width=True)
+
+
+    with col2:
+        df_dys = df[~df['afspraaksoort'].str.startswith("Z HB", na=False)]
+        df_dys['regio'] = df_dys['gemeente'].apply(gemeente_naar_regio)
+
+        # Onbekend eventueel uitsluiten:
+        # df_dys = df_dys[df_dys['regio'] != 'Onbekend']
+
+        if selected_regio != "Alle regio's":
+            df_dys = df_dys[df_dys['regio'] == selected_regio]
+            group_col = "gemeente"
+        else:
+            group_col = "regio"
+
+        data_dys = df_dys.groupby(group_col)['clienten_aanwezig'].nunique().reset_index()
+        data_dys.columns = [group_col, 'aantal_clienten']
+
+        fig_dys = px.pie(
+            data_dys,
+            names=group_col,
+            values='aantal_clienten',
+            title=f"Aantal cliënten per {group_col} (Dyslexiezorg)",
+            hole=0.4,
+            color=group_col,
+            color_discrete_map=regio_kleuren
+        )
+
+        fig_dys.update_traces(
+            textinfo='value',
+            hovertemplate=f"{group_col}: %{{label}}<br>Aantal cliënten: %{{value}}"
+        )
+
+        st.plotly_chart(fig_dys, use_container_width=True)
+
+
+
+
+
+#---------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+#---------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 # Login formulier tonen als nog niet ingelogd
 if not st.session_state.ingelogd:
