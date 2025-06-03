@@ -804,18 +804,39 @@ if st.session_state.ingelogd:
 #---------------------------------------------------------------------------------------------------------------------------------------------------------------
 
     with tab4:
+        # --- Functie voor regio-indeling ---
         def gemeente_naar_regio(gemeente):
             for regio, gemeentes in dic.items():
                 if gemeente in gemeentes:
                     return regio
             return 'Onbekend'
 
-        # --- Filter vorige maand ---
+        # --- Genereer lijst van maanden tot vorige maand ---
         vandaag = datetime.today()
-        een_maand_geleden = vandaag - relativedelta(months=1)
-        start_maand = een_maand_geleden.replace(day=1)
-        einde_maand = vandaag.replace(day=1) - pd.Timedelta(days=1)
+        vorige_maand = vandaag.replace(day=1) - relativedelta(months=1)
 
+        eerste_maand = datetime(2025, 1, 1)
+        maanden = []
+        labels = []
+
+        huidige = eerste_maand
+        while huidige <= vorige_maand:
+            maanden.append(huidige)
+            labels.append(huidige.strftime("%B %Y"))
+            huidige += relativedelta(months=1)
+
+        # --- Maand-slider ---
+        gekozen_label = st.select_slider(
+            "Kies een maand",
+            options=labels,
+            value=labels[-1]
+        )
+        gekozen_index = labels.index(gekozen_label)
+        gekozen_maand = maanden[gekozen_index]
+        start_maand = gekozen_maand
+        einde_maand = (start_maand + relativedelta(months=1)) - pd.Timedelta(days=1)
+
+        # --- Filter facturen op maand ---
         facturen_vorige_maand = factuur[
             (factuur['factuurdatum'] >= start_maand) &
             (factuur['factuurdatum'] <= einde_maand)
@@ -823,7 +844,7 @@ if st.session_state.ingelogd:
 
         facturen_vorige_maand['regio'] = facturen_vorige_maand['debiteur'].apply(gemeente_naar_regio)
 
-        # --- Tarieven codes ---
+        # --- Categoriseren ---
         tarieven_codes = {
             "54R21", "54R22", "54001", "54019", "54DD1", "54BD1", "20001", "20002", "54018"
         }
@@ -832,68 +853,148 @@ if st.session_state.ingelogd:
             lambda x: 'tarieven' if str(x) in tarieven_codes else 'overige'
         )
 
-        # --- Groeperen ---
+        # --- Groeperen en sorteren ---
         tarieven_df = facturen_vorige_maand[facturen_vorige_maand['categorie'] == 'tarieven']
         tarieven_opbrengst = tarieven_df.groupby('regio')['toegewezen_bedrag'].sum().reset_index()
         tarieven_opbrengst.columns = ['Regio', 'Opbrengst_tarieven']
+        tarieven_opbrengst_sorted = tarieven_opbrengst.sort_values(by='Opbrengst_tarieven', ascending=False)
 
         overige_df = facturen_vorige_maand[facturen_vorige_maand['categorie'] == 'overige']
         overige_opbrengst = overige_df.groupby('regio')['toegewezen_bedrag'].sum().reset_index()
         overige_opbrengst.columns = ['Regio', 'Opbrengst_overige']
+        overige_opbrengst_sorted = overige_opbrengst.sort_values(by='Opbrengst_overige', ascending=False)
 
-        # --- Streamlit layout met 2 kolommen ---
+        # Groeperen per gemeente
+        tarieven_gemeente_df = facturen_vorige_maand[facturen_vorige_maand['categorie'] == 'tarieven']
+        tarieven_gemeente_opbrengst = tarieven_gemeente_df.groupby('debiteur')['toegewezen_bedrag'].sum().reset_index()
+        tarieven_gemeente_opbrengst.columns = ['Gemeente', 'Opbrengst_tarieven']
+        tarieven_gemeente_opbrengst_sorted = tarieven_gemeente_opbrengst.sort_values(by='Opbrengst_tarieven', ascending=False)
 
-        st.title("Opbrengst per Regio vorige maand")
+        overige_gemeente_df = facturen_vorige_maand[facturen_vorige_maand['categorie'] == 'overige']
+        overige_gemeente_opbrengst = overige_gemeente_df.groupby('debiteur')['toegewezen_bedrag'].sum().reset_index()
+        overige_gemeente_opbrengst.columns = ['Gemeente', 'Opbrengst_overige']
+        overige_gemeente_opbrengst_sorted = overige_gemeente_opbrengst.sort_values(by='Opbrengst_overige', ascending=False)
+
+
+        # --- Layout ---
+        st.title("Opbrengst per Regio - Geselecteerde Maand")
 
         col1, col2 = st.columns(2)
 
         with col1:
             st.header("Dyslexiezorg")
             fig1 = px.bar(
-                tarieven_opbrengst,
+                tarieven_opbrengst_sorted,
                 x='Regio',
                 y='Opbrengst_tarieven',
-                text=tarieven_opbrengst['Opbrengst_tarieven'].apply(lambda x: f"€{x:,.0f}"),
-                color_discrete_sequence=['green']
+                text=tarieven_opbrengst_sorted['Opbrengst_tarieven'].apply(lambda x: f"€{x:,.0f}"),
+                color='Regio',
+                color_discrete_map=regio_kleuren
             )
             fig1.update_traces(
-                textposition='inside',
-                textfont=dict(color='white', size=14, family='Arial Black')
+                textposition='auto',
+                textfont=dict(color='white', size=1, family='Arial Black')
             )
+
             fig1.update_layout(
                 yaxis_title='Opbrengst (€)',
                 xaxis_title='Regio',
                 uniformtext_minsize=12,
                 uniformtext_mode='hide',
                 margin=dict(t=50, b=100),
+                showlegend=False
             )
-            fig1.update_xaxes(tickangle=45)
+            fig1.update_xaxes(tickangle=45, categoryorder='array', categoryarray=tarieven_opbrengst_sorted['Regio'])
             st.plotly_chart(fig1, use_container_width=True)
 
         with col2:
             st.header("BlinkUit")
             fig2 = px.bar(
-                overige_opbrengst,
+                overige_opbrengst_sorted,
                 x='Regio',
                 y='Opbrengst_overige',
-                text=overige_opbrengst['Opbrengst_overige'].apply(lambda x: f"€{x:,.0f}"),
-                color_discrete_sequence=['orange']
+                text=overige_opbrengst_sorted['Opbrengst_overige'].apply(lambda x: f"€{x:,.0f}"),
+                color='Regio',
+                color_discrete_map=regio_kleuren
             )
             fig2.update_traces(
                 textposition='inside',
-                textfont=dict(color='white', size=14, family='Arial Black')
+                textfont=dict(color='white', size=1, family='Arial Black')
             )
+
             fig2.update_layout(
                 yaxis_title='Opbrengst (€)',
                 xaxis_title='Regio',
                 uniformtext_minsize=12,
                 uniformtext_mode='hide',
                 margin=dict(t=50, b=100),
+                showlegend=False
             )
-            fig2.update_xaxes(tickangle=45)
+            fig2.update_xaxes(tickangle=45, categoryorder='array', categoryarray=overige_opbrengst_sorted['Regio'])
             st.plotly_chart(fig2, use_container_width=True)
 
 
+
+        def gemeente_naar_regio_kleur(gemeente):
+            for regio, gemeentes in dic.items():
+                if gemeente in gemeentes:
+                    return regio_kleuren.get(regio, '#CCCCCC')  # fallback grijs
+            return '#CCCCCC'
+
+        tarieven_gemeente_opbrengst_sorted['RegioKleur'] = tarieven_gemeente_opbrengst_sorted['Gemeente'].apply(gemeente_naar_regio_kleur)
+        overige_gemeente_opbrengst_sorted['RegioKleur'] = overige_gemeente_opbrengst_sorted['Gemeente'].apply(gemeente_naar_regio_kleur)
+
+
+
+    col3, col4 = st.columns(2)
+
+    with col3:
+        st.header("Dyslexiezorg (Gemeente)")
+        fig3 = px.bar(
+            tarieven_gemeente_opbrengst_sorted,
+            x='Gemeente',
+            y='Opbrengst_tarieven',
+            text=tarieven_gemeente_opbrengst_sorted['Opbrengst_tarieven'].apply(lambda x: f"€{x:,.0f}"),
+        )
+        fig3.update_traces(
+            marker_color=tarieven_gemeente_opbrengst_sorted['RegioKleur'],
+            textposition='auto',
+            textfont=dict(color='white', size=10, family='Arial Black')
+        )
+        fig3.update_layout(
+            yaxis_title='Opbrengst (€)',
+            xaxis_title='Gemeente',
+            uniformtext_minsize=12,
+            uniformtext_mode='hide',
+            margin=dict(t=50, b=100),
+            showlegend=False
+        )
+        fig3.update_xaxes(tickangle=45, categoryorder='total descending')
+        st.plotly_chart(fig3, use_container_width=True)
+
+    with col4:
+        st.header("BlinkUit (Gemeente)")
+        fig4 = px.bar(
+            overige_gemeente_opbrengst_sorted,
+            x='Gemeente',
+            y='Opbrengst_overige',
+            text=overige_gemeente_opbrengst_sorted['Opbrengst_overige'].apply(lambda x: f"€{x:,.0f}"),
+        )
+        fig4.update_traces(
+            marker_color=overige_gemeente_opbrengst_sorted['RegioKleur'],
+            textposition='inside',
+            textfont=dict(color='white', size=10, family='Arial Black')
+        )
+        fig4.update_layout(
+            yaxis_title='Opbrengst (€)',
+            xaxis_title='Gemeente',
+            uniformtext_minsize=12,
+            uniformtext_mode='hide',
+            margin=dict(t=50, b=100),
+            showlegend=False
+        )
+        fig4.update_xaxes(tickangle=45, categoryorder='total descending')
+        st.plotly_chart(fig4, use_container_width=True)
 
 
 
