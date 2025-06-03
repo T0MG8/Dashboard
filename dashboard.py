@@ -15,6 +15,8 @@ from sklearn.model_selection import train_test_split
 from sklearn.metrics import mean_absolute_error
 import time
 from branca.colormap import linear
+from dateutil.relativedelta import relativedelta
+from datetime import datetime
 
 # Meerdere accounts
 gebruikers = {
@@ -31,7 +33,7 @@ if 'gebruiker' not in st.session_state:
 # Als ingelogd, toon de tabs en laad data
 if st.session_state.ingelogd:
 # Sidebar met tabbladen
-    tab1, tab2, tab3, tab4 = st.tabs(['Afspraken', 'Gemeentes', 'Behandelaren', 'Test'])
+    tab1, tab2, tab3, tab4 = st.tabs(['Afspraken', 'Gemeentes', 'Behandelaren', 'Maandelijks'])
 
     # Data inladen
     @st.cache_data
@@ -91,85 +93,180 @@ if st.session_state.ingelogd:
         start_month = maanden.index(start_month_name) + 1  # Maandnaam naar maandnummer
         end_month = maanden.index(end_month_name) + 1      # Maandnaam naar maandnummer
 
-    # Plotly figuur voor afspraken
-        fig = go.Figure()
+            # Maak twee kolommen aan
+        col1, col2 = st.columns(2)
 
-    # Voor elke dataframe een lijn toevoegen
-        for year, df in dataframes.items():
-            df['datum'] = pd.to_datetime(df['datum'], format='%d-%m-%Y')
-            df['maand'] = df['datum'].dt.month
+            # ------------------ GRAAF: Dyslexiezorg ------------------
+        with col2:
+            fig_BlinkUit = go.Figure()
 
-        # Filter op geselecteerde maanden (gebruik maandnummers)
-            filtered_df = df[(df['maand'] >= start_month) & (df['maand'] <= end_month)]
-        
-        # Bereken totaal aantal afspraken voor dat jaar
-            totaal_afspraken = filtered_df.shape[0]
+            for year, df in dataframes.items():
+                df = df.copy()
+                df = df[df['afspraaksoort'].notna()]
+                df['datum'] = pd.to_datetime(df['datum'], format='%d-%m-%Y')
+                df['maand'] = df['datum'].dt.month
 
-            maand_telling = filtered_df['maand'].value_counts().sort_index()
+                BlinkUit_df = df[
+                        (df['maand'] >= start_month) & 
+                        (df['maand'] <= end_month) & 
+                        (df['afspraaksoort'].str.startswith('Z HB'))
+                    ]
 
-            fig.add_trace(go.Scatter(
-                x=maand_telling.index,
-                y=maand_telling.values,
-                mode='lines+markers',
-                name=f'{year}',
-                hovertemplate=f"    Maand: %{{x}}<br>Aantal: %{{y}}<br>Totaal {year}: {totaal_afspraken}"
-            ))
+                totaal_afspraken = BlinkUit_df.shape[0]
+                maand_telling = BlinkUit_df['maand'].value_counts().sort_index()
 
-        fig.update_layout(
-            title="Aantal gehouden afspraken per maand",
-            xaxis=dict(
-                title="Maand", 
-                tickmode='array', 
-                showgrid=True, 
-                tickvals=list(range(1, 13)), 
-                ticktext=maanden  # Maandnamen tonen in plaats van nummers
-            ),
-            yaxis_title="Aantal afspraken",
-            legend_title="Jaar",
-            yaxis=dict(showgrid=True)
-        )
+                fig_BlinkUit.add_trace(go.Scatter(
+                        x=maand_telling.index,
+                        y=maand_telling.values,
+                        mode='lines+markers',
+                        name=f'{year}',
+                        hovertemplate=f"Maand: %{{x}}<br>Aantal: %{{y}}<br>Totaal {year}: {totaal_afspraken}"
+                    ))
 
-        st.plotly_chart(fig)
+                fig_BlinkUit.update_layout(
+                    title="Aantal afspraken per maand (BlinkUit)",
+                    xaxis=dict(
+                        title="Maand",
+                        tickmode='array',
+                        tickvals=list(range(1, 13)),
+                        ticktext=maanden,
+                        showgrid=True  # Zet gridlijnen op de x-as aan
+                    ),
+                    yaxis=dict(
+                        title="Aantal afspraken",
+                        showgrid=True  # Zet gridlijnen op de y-as aan
+                    ),
+                    legend_title="Jaar",
+                    height=500
+                )
+
+
+            st.plotly_chart(fig_BlinkUit, use_container_width=True)
+
+            # ------------------ GRAAF: BlinkUit ------------------
+        with col1:
+            fig_dyslexie = go.Figure()
+
+            for year, df in dataframes.items():
+                df = df.copy()
+                df = df[df['afspraaksoort'].notna()]
+                df['datum'] = pd.to_datetime(df['datum'], format='%d-%m-%Y')
+                df['maand'] = df['datum'].dt.month
+
+                dys_df = df[
+                    (df['maand'] >= start_month) & 
+                    (df['maand'] <= end_month) & 
+                    (~df['afspraaksoort'].str.startswith('Z HB'))
+                    ]
+
+                totaal_afspraken = dys_df.shape[0]
+                maand_telling = dys_df['maand'].value_counts().sort_index()
+
+                fig_dyslexie.add_trace(go.Scatter(
+                        x=maand_telling.index,
+                        y=maand_telling.values,
+                        mode='lines+markers',
+                        name=f'{year}',
+                        hovertemplate=f"Maand: %{{x}}<br>Aantal: %{{y}}<br>Totaal {year}: {totaal_afspraken}"
+                    ))
+
+                fig_dyslexie.update_layout(
+                    title="Aantal afspraken per maand (Dyslexiezorg)",
+                    xaxis=dict(
+                        title="Maand",
+                        tickmode='array',
+                        tickvals=list(range(1, 13)),
+                        ticktext=maanden,
+                        showgrid=True
+                    ),
+                    yaxis=dict(
+                        title="Aantal afspraken",
+                        showgrid=True
+                    ),
+                    legend_title="Jaar",
+                    height=500
+                )
+
+            st.plotly_chart(fig_dyslexie, use_container_width=True)
 
         
     #-------------------------------------------------------------------------------------------------------------------------------------------
 
     #-------------------------------------------------------------------------------------------------------------------------------------------
     
-        # Zorg ervoor dat factuurdatum in datetime-formaat is
+        # Zorg dat factuurdatum in datetime-formaat is
         factuur['factuurdatum'] = pd.to_datetime(factuur['factuurdatum'], dayfirst=True)
 
-        # Extraheer jaar en maand
+        # Extract jaar en maand
         factuur['jaar'] = factuur['factuurdatum'].dt.year
         factuur['maand'] = factuur['factuurdatum'].dt.month
 
-        # Filter op de geselecteerde maanden (gebruik maandnummers)
+        # Declaratiecodes als string voor matching
+        factuur['declaratiecode'] = factuur['declaratiecode'].astype(str)
+
+        # Filter op maanden
         filtered_factuur = factuur[(factuur['maand'] >= start_month) & (factuur['maand'] <= end_month)]
 
-        # Groepeer per jaar en maand en sommeer het toegewezen bedrag
-        maandelijkse_totals = filtered_factuur.groupby(['jaar', 'maand'])['toegewezen_bedrag'].sum().reset_index()
+        # Set met dyslexiezorg-codes
+        tarieven_codes = {
+            "54R21", "54R22", "54001", "54019", "54DD1", "54BD1", "20001", "20002", "54018"
+        }
 
-        # Plot met Plotly
-        fig1 = px.line(maandelijkse_totals, 
-                    x='maand', 
-                    y='toegewezen_bedrag', 
-                    color='jaar',
-                    markers=True)
+        # Opsplitsen in dyslexiezorg en blinkuit
+        factuur_dyslexie = filtered_factuur[filtered_factuur['declaratiecode'].isin(tarieven_codes)]
+        factuur_blinkuit = filtered_factuur[~filtered_factuur['declaratiecode'].isin(tarieven_codes)]
 
-        fig1.update_layout(title="Hoeveelheid verstuurde facturen per maand",
-            xaxis=dict(
-                tickmode='array', 
-                tickvals=list(range(1, 13)), 
-                ticktext=maanden,  # Maandnamen tonen in plaats van nummers
-            ),
-            yaxis_title="Totaal Bedrag",
-            legend_title="Jaar",
-            xaxis_showgrid=True,
-            yaxis_showgrid=True
-        )
+        # Groeperen per jaar en maand
+        totals_dyslexie = factuur_dyslexie.groupby(['jaar', 'maand'])['toegewezen_bedrag'].sum().reset_index()
+        totals_blinkuit = factuur_blinkuit.groupby(['jaar', 'maand'])['toegewezen_bedrag'].sum().reset_index()
 
-        # Streamlit plot
-        st.plotly_chart(fig1)
+        # Twee kolommen voor de grafieken
+        col1, col2 = st.columns(2)
+
+        with col1:
+            fig_dys = px.line(
+                totals_dyslexie, 
+                x='maand', 
+                y='toegewezen_bedrag', 
+                color='jaar',
+                markers=True
+            )
+            fig_dys.update_layout(
+                title="Facturen Dyslexiezorg",
+                xaxis=dict(
+                    tickmode='array',
+                    tickvals=list(range(1, 13)),
+                    ticktext=maanden
+                ),
+                yaxis_title="Totaal Bedrag",
+                legend_title="Jaar",
+                xaxis_showgrid=True,
+                yaxis_showgrid=True
+            )
+            st.plotly_chart(fig_dys)
+
+        with col2:
+            fig_blink = px.line(
+                totals_blinkuit, 
+                x='maand', 
+                y='toegewezen_bedrag', 
+                color='jaar',
+                markers=True
+            )
+            fig_blink.update_layout(
+                title="Facturen BlinkUit",
+                xaxis=dict(
+                    tickmode='array',
+                    tickvals=list(range(1, 13)),
+                    ticktext=maanden
+                ),
+                yaxis_title="Totaal Bedrag",
+                legend_title="Jaar",
+                xaxis_showgrid=True,
+                yaxis_showgrid=True
+            )
+            st.plotly_chart(fig_blink)
+
 
     #-------------------------------------------------------------------------------------------------------------------------------------------
 
@@ -505,275 +602,6 @@ if st.session_state.ingelogd:
         uitvoerder_counts = df.groupby(['uitvoerder', 'gemeente'])['clienten_aanwezig'].nunique().reset_index()
 
         dic = {
-            'Regio Alkmaar': ['Alkmaar', 'Bergen (NH.)', 'Castricum', 'Dijk en Waard', 'Heiloo', 'Uitgeest'],
-            'Kop van Noord-Holland': ['Den Helder', 'Schagen', 'Texel', 'Hollands Kroon'],
-            'Regio IJmond': ['Beverwijk', 'Heemskerk', 'Velsen'],
-            'West Friesland': ['Drechterland', 'Enkhuizen', 'Hoorn', 'Koggenland', 'Medemblik', 'Opmeer', 'Stede Broec'],
-            'Zuid Kennermerland': ['Bloemendaal', 'Haarlem', 'Heemstede', 'Zandvoort'],
-            'Regio Zaanstreek Waterland': ['Edam-Volendam', 'Landsmeer', 'Oostzaan', 'Purmerend', 'Waterland', 'Wormerland', 'Zaanstad', 'Langedijk', 'Beemster', 'Heerhugowaard'],
-            'Regio Amsterdam-Amstelland': ['Amsterdam']
-        }
-
-        regio_kleuren = {
-    'Regio Alkmaar': '#A0C4FF',
-    'Kop van Noord-Holland': '#0077CC',
-    'West Friesland': '#FF4D4D',
-    'Zuid Kennermerland': '#FFB347',
-    'Regio IJmond': '#A3D977',
-    'Regio Zaanstreek Waterland': '#00C49A',
-    'Regio Amsterdam-Amstelland': '#FFD700'
-        }
-
-        # Mapping van gemeente naar regio
-        def gemeente_naar_regio(gemeente):
-            for regio, gemeentes in dic.items():
-                if gemeente in gemeentes:
-                    return regio
-            return "Onbekend"
-
-        # Nieuwe kolom "regio" toevoegen
-        uitvoerder_counts['regio'] = uitvoerder_counts['gemeente'].apply(gemeente_naar_regio)
-
-        # Dropdownmenu voor regioselectie
-        regio_keuzes = ["Alle regio's"] + list(dic.keys())
-        selected_regio = st.selectbox("Selecteer een regio:", regio_keuzes)
-
-        # Filteren op regio
-        if selected_regio != "Alle regio's":
-            uitvoerder_counts = uitvoerder_counts[uitvoerder_counts['regio'] == selected_regio]
-            kleurvariabele = "gemeente"  # Elke gemeente krijgt een unieke kleur
-            hovertemplate = "Aantal unieke cliënten: %{y}<br>Uitvoerder: %{x}"
-            customdata = uitvoerder_counts[['gemeente']].values
-        else:
-            kleurvariabele = "regio"  # Kleur blijft per regio
-            uitvoerder_counts = uitvoerder_counts.groupby(["uitvoerder", "regio"])["clienten_aanwezig"].sum().reset_index()
-            hovertemplate = "Aantal unieke cliënten: %{y}<br>Uitvoerder: %{x}"
-            customdata = uitvoerder_counts[['regio']].values
-
-        # Plot maken met Plotly
-        fig3 = px.bar(
-            uitvoerder_counts, 
-            x='uitvoerder', 
-            y='clienten_aanwezig', 
-            color=kleurvariabele, 
-            title="Aantal cliënten per behandelaar per regio/gemeente", 
-            labels={'uitvoerder': 'Uitvoerder', 'clienten_aanwezig': 'Aantal unieke cliënten', kleurvariabele: kleurvariabele.capitalize()}, 
-            barmode='stack'  
-        )
-
-        # Pas de hoverdata aan
-        fig3.update_traces(hovertemplate=hovertemplate, customdata=customdata)
-
-        fig3.update_layout(xaxis_tickangle=-45)
-        st.plotly_chart(fig3)
-
-    #---------------------------------------------------------------------------------------------------------------------------------------------------------------
-
-    #---------------------------------------------------------------------------------------------------------------------------------------------------------------
-
-    # Tellen van het aantal afspraken per uitvoerder en gemeente
-        afspraken_per_uitvoerder = df.groupby(['uitvoerder', 'gemeente']).size().reset_index(name='aantal_afspraken')
-
-    # Gemeente omzetten naar regio
-        afspraken_per_uitvoerder['regio'] = afspraken_per_uitvoerder['gemeente'].apply(gemeente_naar_regio)
-
-    # Groeperen op uitvoerder, regio en gemeente
-        afspraken_per_uitvoerder = afspraken_per_uitvoerder.groupby(['uitvoerder', 'gemeente', 'regio'])['aantal_afspraken'].sum().reset_index()
-
-    # **Filter op geselecteerde regio**
-        if selected_regio != "Alle regio's":
-            afspraken_per_uitvoerder = afspraken_per_uitvoerder[afspraken_per_uitvoerder['regio'] == selected_regio]
-            kleurvariabele = "gemeente"  # Als een regio is geselecteerd, kleur per gemeente
-        else:
-            kleurvariabele = "regio"  # Als alle regio's worden getoond, kleur per regio
-
-    # Nieuwe plot maken
-        fig6 = px.bar(
-            afspraken_per_uitvoerder, 
-            x='uitvoerder', 
-            y='aantal_afspraken', 
-            color=kleurvariabele,  # Dynamische kleur
-            title="Aantal gehouden afspraken per behandelaar per regio/gemeente", 
-            labels={'uitvoerder': 'Uitvoerder', 'aantal_afspraken': 'Aantal afspraken', kleurvariabele: kleurvariabele.capitalize()}, 
-            barmode='stack'  # Zorgt ervoor dat de gemeentes/regio's per uitvoerder gestapeld worden
-    )
-
-        fig6.update_layout(xaxis_tickangle=-45)
-        st.plotly_chart(fig6)
-
-    #---------------------------------------------------------------------------------------------------------------------------------------------------------------
-
-    #---------------------------------------------------------------------------------------------------------------------------------------------------------------
-
-    # Tellen van de duur per uitvoerder en gemeente (in plaats van aantal afspraken)
-        afspraken_per_uitvoerder = df.groupby(['uitvoerder', 'gemeente'])['duur'].sum().reset_index(name='totaal_duur')
-
-    # Gemeente omzetten naar regio
-        afspraken_per_uitvoerder['regio'] = afspraken_per_uitvoerder['gemeente'].apply(gemeente_naar_regio)
-
-    # Groeperen op uitvoerder, regio en gemeente
-        afspraken_per_uitvoerder = afspraken_per_uitvoerder.groupby(['uitvoerder', 'gemeente', 'regio'])['totaal_duur'].sum().reset_index()
-
-    # **Filter op geselecteerde regio**
-        if selected_regio != "Alle regio's":
-            afspraken_per_uitvoerder = afspraken_per_uitvoerder[afspraken_per_uitvoerder['regio'] == selected_regio]
-            kleurvariabele = "gemeente"  # Als een regio is geselecteerd, kleur per gemeente
-        else:
-            kleurvariabele = "regio"  # Als alle regio's worden getoond, kleur per regio
-
-    # Nieuwe plot maken
-        fig7 = px.bar(
-        afspraken_per_uitvoerder, 
-        x='uitvoerder', 
-        y='totaal_duur',  # Gebruik de som van de duur
-        color=kleurvariabele,  # Dynamische kleur
-        title="Aantal gehouden minuten per behandelaar per regio/gemeente", 
-        labels={'uitvoerder': 'Uitvoerder', 'totaal_duur': 'Aantal minuten', kleurvariabele: kleurvariabele.capitalize()}, 
-        barmode='stack'  # Zorgt ervoor dat de gemeentes/regio's per uitvoerder gestapeld worden
-    )
-
-        fig7.update_layout(xaxis_tickangle=-45)
-        st.plotly_chart(fig7)
-
-#---------------------------------------------------------------------------------------------------------------------------------------------------------------
-
-#---------------------------------------------------------------------------------------------------------------------------------------------------------------
-
-    with tab4:
-
-        maanden = ['Januari', 'Februari', 'Maart', 'April', 'Mei', 'Juni',
-                    'Juli', 'Augustus', 'September', 'Oktober', 'November', 'December']
-
-            # Mapping van maandnummer naar maandnaam
-        maand_mapping = {i + 1: maanden[i] for i in range(len(maanden))}
-
-            # Lijst van dataframes en corresponderende jaartallen
-        dataframes = {
-                2020: afspraken2020,
-                2021: afspraken2021,
-                2022: afspraken2022,
-                2023: afspraken2023,
-                2024: afspraken2024,
-                2025: afspraken2025
-            }
-
-        st.title("Dyslexiezorg VS BlinkUit")
-        st.write("In dit tabblad krijg je inzicht in het verschil tussen de dyslexiezorg en Blinkuit. Als je met de muis over de titel van de grafieken beweegt en op '⛶' klikt, wordt de grafiek vergroot weergegeven. Druk op 'Esc' om deze weer te verkleinen. Dit tabblad is om te kunnen testen.")
-        st.write("### Afspraken")
-            # Maandselectie
-        start_month_name, end_month_name = st.select_slider(
-                "Selecteer de maanden", 
-                options=maanden, 
-                value=(maanden[0], maanden[11]), 
-                key="maand_slider_tab4",
-                help="Selecteer een periode van maanden van het jaar"
-            )
-
-        start_month = maanden.index(start_month_name) + 1
-        end_month = maanden.index(end_month_name) + 1
-
-            # Maak twee kolommen aan
-        col1, col2 = st.columns(2)
-
-            # ------------------ GRAAF: BlinkUit ------------------
-        with col1:
-            fig_BlinkUit = go.Figure()
-
-            for year, df in dataframes.items():
-                df = df.copy()
-                df = df[df['afspraaksoort'].notna()]
-                df['datum'] = pd.to_datetime(df['datum'], format='%d-%m-%Y')
-                df['maand'] = df['datum'].dt.month
-
-                BlinkUit_df = df[
-                        (df['maand'] >= start_month) & 
-                        (df['maand'] <= end_month) & 
-                        (df['afspraaksoort'].str.startswith('Z HB'))
-                    ]
-
-                totaal_afspraken = BlinkUit_df.shape[0]
-                maand_telling = BlinkUit_df['maand'].value_counts().sort_index()
-
-                fig_BlinkUit.add_trace(go.Scatter(
-                        x=maand_telling.index,
-                        y=maand_telling.values,
-                        mode='lines+markers',
-                        name=f'{year}',
-                        hovertemplate=f"Maand: %{{x}}<br>Aantal: %{{y}}<br>Totaal {year}: {totaal_afspraken}"
-                    ))
-
-            fig_BlinkUit.update_layout(
-                    title="Aantal afspraken per maand (BlinkUit)",
-                    xaxis=dict(
-                        title="Maand", 
-                        tickmode='array', 
-                        tickvals=list(range(1, 13)), 
-                        ticktext=maanden
-                    ),
-                    yaxis_title="Aantal afspraken",
-                    legend_title="Jaar",
-                    height=500
-                )
-
-            st.plotly_chart(fig_BlinkUit, use_container_width=True)
-
-            # ------------------ GRAAF: Dyslexiezorg ------------------
-        with col2:
-            fig_dyslexie = go.Figure()
-
-            for year, df in dataframes.items():
-                df = df.copy()
-                df = df[df['afspraaksoort'].notna()]
-                df['datum'] = pd.to_datetime(df['datum'], format='%d-%m-%Y')
-                df['maand'] = df['datum'].dt.month
-
-                dys_df = df[
-                    (df['maand'] >= start_month) & 
-                    (df['maand'] <= end_month) & 
-                    (~df['afspraaksoort'].str.startswith('Z HB'))
-                    ]
-
-                totaal_afspraken = dys_df.shape[0]
-                maand_telling = dys_df['maand'].value_counts().sort_index()
-
-                fig_dyslexie.add_trace(go.Scatter(
-                        x=maand_telling.index,
-                        y=maand_telling.values,
-                        mode='lines+markers',
-                        name=f'{year}',
-                        hovertemplate=f"Maand: %{{x}}<br>Aantal: %{{y}}<br>Totaal {year}: {totaal_afspraken}"
-                    ))
-
-            fig_dyslexie.update_layout(
-                    title="Aantal afspraken per maand (Dyslexiezorg)",
-                    xaxis=dict(
-                        title="Maand", 
-                        tickmode='array', 
-                        tickvals=list(range(1, 13)), 
-                        ticktext=maanden
-                    ),
-                    yaxis_title="Aantal afspraken",
-                    legend_title="Jaar",
-                    height=500
-                )
-
-            st.plotly_chart(fig_dyslexie, use_container_width=True)
-
-
-        st.write("### Behandelaren")
-
-        for jaar in dataframes.keys():
-            dataframes[jaar] = dataframes[jaar].merge(
-                factuur[['clientcode', 'debiteur']], 
-                left_on='clienten_aanwezig', 
-                right_on='clientcode', 
-                how='left'
-            ).rename(columns={'debiteur': 'gemeente'})
-
-        selected_year = st.slider("Kies een jaar:", min_value=2020, max_value=2025, value=2025, key="jaar_slider_tab4")
-        df = dataframes[selected_year]
-
-        dic = {
                 'Regio Alkmaar': ['Alkmaar', 'Bergen (NH.)', 'Castricum', 'Dijk en Waard', 'Heiloo', 'Uitgeest'],
                 'Kop van Noord-Holland': ['Den Helder', 'Schagen', 'Texel', 'Hollands Kroon'],
                 'Regio IJmond': ['Beverwijk', 'Heemskerk', 'Velsen'],
@@ -804,7 +632,7 @@ if st.session_state.ingelogd:
 
         col1, col2 = st.columns(2)
 
-        with col1:
+        with col2:
             df_geert = df[df['afspraaksoort'].str.startswith("Z HB", na=False)]
             uitvoerder_counts_geert = df_geert.groupby(['uitvoerder', 'gemeente'])['clienten_aanwezig'].nunique().reset_index()
             uitvoerder_counts_geert['regio'] = uitvoerder_counts_geert['gemeente'].apply(gemeente_naar_regio)
@@ -832,7 +660,7 @@ if st.session_state.ingelogd:
             fig_geert.update_layout(xaxis_tickangle=-45, height=600)
             st.plotly_chart(fig_geert, use_container_width=True)
 
-        with col2:
+        with col1:
             df_dys = df[~df['afspraaksoort'].str.startswith("Z HB", na=False)]
             uitvoerder_counts_dys = df_dys.groupby(['uitvoerder', 'gemeente'])['clienten_aanwezig'].nunique().reset_index()
             uitvoerder_counts_dys['regio'] = uitvoerder_counts_dys['gemeente'].apply(gemeente_naar_regio)
@@ -865,7 +693,7 @@ if st.session_state.ingelogd:
         # Afspraken per uitvoerder, gesplitst in Geert en Dyslexiezorg
         col1, col2 = st.columns(2)
 
-        with col1:
+        with col2:
             df_geert = df[df['afspraaksoort'].str.startswith("Z HB", na=False)]
 
             afspraken_per_uitvoerder_geert = df_geert.groupby(['uitvoerder', 'gemeente']).size().reset_index(name='aantal_afspraken')
@@ -890,7 +718,7 @@ if st.session_state.ingelogd:
             fig_geert.update_layout(xaxis_tickangle=-45, height=600)
             st.plotly_chart(fig_geert, use_container_width=True)
 
-        with col2:
+        with col1:
             df_dys = df[~df['afspraaksoort'].str.startswith("Z HB", na=False)]
 
             afspraken_per_uitvoerder_dys = df_dys.groupby(['uitvoerder', 'gemeente']).size().reset_index(name='aantal_afspraken')
@@ -919,7 +747,7 @@ if st.session_state.ingelogd:
         # Duur van afspraken per uitvoerder, gesplitst in Geert en Dyslexiezorg
         col1, col2 = st.columns(2)
 
-        with col1:
+        with col2:
 
             df_geert = df[df['afspraaksoort'].str.startswith("Z HB", na=False)]
 
@@ -945,7 +773,7 @@ if st.session_state.ingelogd:
             fig_geert_minuten.update_layout(xaxis_tickangle=-45, height=600)
             st.plotly_chart(fig_geert_minuten, use_container_width=True)
 
-        with col2:
+        with col1:
             df_dys = df[~df['afspraaksoort'].str.startswith("Z HB", na=False)]
 
             afspraken_duur_dys = df_dys.groupby(['uitvoerder', 'gemeente'])['duur'].sum().reset_index(name='totaal_duur')
@@ -970,74 +798,101 @@ if st.session_state.ingelogd:
             fig_dys_minuten.update_layout(xaxis_tickangle=-45, height=600)
             st.plotly_chart(fig_dys_minuten, use_container_width=True)
 
-        
+
+#---------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+#---------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+    with tab4:
+        def gemeente_naar_regio(gemeente):
+            for regio, gemeentes in dic.items():
+                if gemeente in gemeentes:
+                    return regio
+            return 'Onbekend'
+
+        # --- Filter vorige maand ---
+        vandaag = datetime.today()
+        een_maand_geleden = vandaag - relativedelta(months=1)
+        start_maand = een_maand_geleden.replace(day=1)
+        einde_maand = vandaag.replace(day=1) - pd.Timedelta(days=1)
+
+        facturen_vorige_maand = factuur[
+            (factuur['factuurdatum'] >= start_maand) &
+            (factuur['factuurdatum'] <= einde_maand)
+        ].copy()
+
+        facturen_vorige_maand['regio'] = facturen_vorige_maand['debiteur'].apply(gemeente_naar_regio)
+
+        # --- Tarieven codes ---
+        tarieven_codes = {
+            "54R21", "54R22", "54001", "54019", "54DD1", "54BD1", "20001", "20002", "54018"
+        }
+
+        facturen_vorige_maand['categorie'] = facturen_vorige_maand['declaratiecode'].apply(
+            lambda x: 'tarieven' if str(x) in tarieven_codes else 'overige'
+        )
+
+        # --- Groeperen ---
+        tarieven_df = facturen_vorige_maand[facturen_vorige_maand['categorie'] == 'tarieven']
+        tarieven_opbrengst = tarieven_df.groupby('regio')['toegewezen_bedrag'].sum().reset_index()
+        tarieven_opbrengst.columns = ['Regio', 'Opbrengst_tarieven']
+
+        overige_df = facturen_vorige_maand[facturen_vorige_maand['categorie'] == 'overige']
+        overige_opbrengst = overige_df.groupby('regio')['toegewezen_bedrag'].sum().reset_index()
+        overige_opbrengst.columns = ['Regio', 'Opbrengst_overige']
+
+        # --- Streamlit layout met 2 kolommen ---
+
+        st.title("Opbrengst per Regio vorige maand")
+
+        col1, col2 = st.columns(2)
 
         with col1:
-            df_geert = df[df['afspraaksoort'].str.startswith("Z HB", na=False)]
-            df_geert['regio'] = df_geert['gemeente'].apply(gemeente_naar_regio)
-
-            # Onbekend eventueel uitsluiten:
-            # df_geert = df_geert[df_geert['regio'] != 'Onbekend']
-
-            if selected_regio != "Alle regio's":
-                df_geert = df_geert[df_geert['regio'] == selected_regio]
-                group_col = "gemeente"
-            else:
-                group_col = "regio"
-
-            data_geert = df_geert.groupby(group_col)['clienten_aanwezig'].nunique().reset_index()
-            data_geert.columns = [group_col, 'aantal_clienten']
-
-            fig_geert = px.pie(
-                data_geert,
-                names=group_col,
-                values='aantal_clienten',
-                title=f"Aantal cliënten per {group_col} (BlinkUit)",
-                hole=0.4,
-                color=group_col,
-                color_discrete_map=regio_kleuren
+            st.header("Dyslexiezorg")
+            fig1 = px.bar(
+                tarieven_opbrengst,
+                x='Regio',
+                y='Opbrengst_tarieven',
+                text=tarieven_opbrengst['Opbrengst_tarieven'].apply(lambda x: f"€{x:,.0f}"),
+                color_discrete_sequence=['green']
             )
-
-            fig_geert.update_traces(
-                textinfo='value',
-                hovertemplate=f"{group_col}: %{{label}}<br>Aantal cliënten: %{{value}}"
+            fig1.update_traces(
+                textposition='inside',
+                textfont=dict(color='white', size=14, family='Arial Black')
             )
-
-            st.plotly_chart(fig_geert, use_container_width=True)
-
+            fig1.update_layout(
+                yaxis_title='Opbrengst (€)',
+                xaxis_title='Regio',
+                uniformtext_minsize=12,
+                uniformtext_mode='hide',
+                margin=dict(t=50, b=100),
+            )
+            fig1.update_xaxes(tickangle=45)
+            st.plotly_chart(fig1, use_container_width=True)
 
         with col2:
-            df_dys = df[~df['afspraaksoort'].str.startswith("Z HB", na=False)]
-            df_dys['regio'] = df_dys['gemeente'].apply(gemeente_naar_regio)
-
-            # Onbekend eventueel uitsluiten:
-            # df_dys = df_dys[df_dys['regio'] != 'Onbekend']
-
-            if selected_regio != "Alle regio's":
-                df_dys = df_dys[df_dys['regio'] == selected_regio]
-                group_col = "gemeente"
-            else:
-                group_col = "regio"
-
-            data_dys = df_dys.groupby(group_col)['clienten_aanwezig'].nunique().reset_index()
-            data_dys.columns = [group_col, 'aantal_clienten']
-
-            fig_dys = px.pie(
-                data_dys,
-                names=group_col,
-                values='aantal_clienten',
-                title=f"Aantal cliënten per {group_col} (Dyslexiezorg)",
-                hole=0.4,
-                color=group_col,
-                color_discrete_map=regio_kleuren
+            st.header("BlinkUit")
+            fig2 = px.bar(
+                overige_opbrengst,
+                x='Regio',
+                y='Opbrengst_overige',
+                text=overige_opbrengst['Opbrengst_overige'].apply(lambda x: f"€{x:,.0f}"),
+                color_discrete_sequence=['orange']
             )
-
-            fig_dys.update_traces(
-                textinfo='value',
-                hovertemplate=f"{group_col}: %{{label}}<br>Aantal cliënten: %{{value}}"
+            fig2.update_traces(
+                textposition='inside',
+                textfont=dict(color='white', size=14, family='Arial Black')
             )
+            fig2.update_layout(
+                yaxis_title='Opbrengst (€)',
+                xaxis_title='Regio',
+                uniformtext_minsize=12,
+                uniformtext_mode='hide',
+                margin=dict(t=50, b=100),
+            )
+            fig2.update_xaxes(tickangle=45)
+            st.plotly_chart(fig2, use_container_width=True)
 
-            st.plotly_chart(fig_dys, use_container_width=True)
 
 
 
