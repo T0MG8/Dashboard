@@ -946,55 +946,55 @@ if st.session_state.ingelogd:
 
 
 
-    col3, col4 = st.columns(2)
+        col3, col4 = st.columns(2)
 
-    with col3:
-        st.header("Dyslexiezorg (Gemeente)")
-        fig3 = px.bar(
-            tarieven_gemeente_opbrengst_sorted,
-            x='Gemeente',
-            y='Opbrengst_tarieven',
-            text=tarieven_gemeente_opbrengst_sorted['Opbrengst_tarieven'].apply(lambda x: f"€{x:,.0f}"),
-        )
-        fig3.update_traces(
-            marker_color=tarieven_gemeente_opbrengst_sorted['RegioKleur'],
-            textposition='auto',
-            textfont=dict(color='white', size=10, family='Arial Black')
-        )
-        fig3.update_layout(
-            yaxis_title='Opbrengst (€)',
-            xaxis_title='Gemeente',
-            uniformtext_minsize=12,
-            uniformtext_mode='hide',
-            margin=dict(t=50, b=100),
-            showlegend=False
-        )
-        fig3.update_xaxes(tickangle=45, categoryorder='total descending')
-        st.plotly_chart(fig3, use_container_width=True)
+        with col3:
+            st.header("Dyslexiezorg (Gemeente)")
+            fig3 = px.bar(
+                tarieven_gemeente_opbrengst_sorted,
+                x='Gemeente',
+                y='Opbrengst_tarieven',
+                text=tarieven_gemeente_opbrengst_sorted['Opbrengst_tarieven'].apply(lambda x: f"€{x:,.0f}"),
+            )
+            fig3.update_traces(
+                marker_color=tarieven_gemeente_opbrengst_sorted['RegioKleur'],
+                textposition='auto',
+                textfont=dict(color='white', size=10, family='Arial Black')
+            )
+            fig3.update_layout(
+                yaxis_title='Opbrengst (€)',
+                xaxis_title='Gemeente',
+                uniformtext_minsize=12,
+                uniformtext_mode='hide',
+                margin=dict(t=50, b=100),
+                showlegend=False
+            )
+            fig3.update_xaxes(tickangle=45, categoryorder='total descending')
+            st.plotly_chart(fig3, use_container_width=True)
 
-    with col4:
-        st.header("BlinkUit (Gemeente)")
-        fig4 = px.bar(
-            overige_gemeente_opbrengst_sorted,
-            x='Gemeente',
-            y='Opbrengst_overige',
-            text=overige_gemeente_opbrengst_sorted['Opbrengst_overige'].apply(lambda x: f"€{x:,.0f}"),
-        )
-        fig4.update_traces(
-            marker_color=overige_gemeente_opbrengst_sorted['RegioKleur'],
-            textposition='inside',
-            textfont=dict(color='white', size=10, family='Arial Black')
-        )
-        fig4.update_layout(
-            yaxis_title='Opbrengst (€)',
-            xaxis_title='Gemeente',
-            uniformtext_minsize=12,
-            uniformtext_mode='hide',
-            margin=dict(t=50, b=100),
-            showlegend=False
-        )
-        fig4.update_xaxes(tickangle=45, categoryorder='total descending')
-        st.plotly_chart(fig4, use_container_width=True)
+        with col4:
+            st.header("BlinkUit (Gemeente)")
+            fig4 = px.bar(
+                overige_gemeente_opbrengst_sorted,
+                x='Gemeente',
+                y='Opbrengst_overige',
+                text=overige_gemeente_opbrengst_sorted['Opbrengst_overige'].apply(lambda x: f"€{x:,.0f}"),
+            )
+            fig4.update_traces(
+                marker_color=overige_gemeente_opbrengst_sorted['RegioKleur'],
+                textposition='inside',
+                textfont=dict(color='white', size=10, family='Arial Black')
+            )
+            fig4.update_layout(
+                yaxis_title='Opbrengst (€)',
+                xaxis_title='Gemeente',
+                uniformtext_minsize=12,
+                uniformtext_mode='hide',
+                margin=dict(t=50, b=100),
+                showlegend=False
+            )
+            fig4.update_xaxes(tickangle=45, categoryorder='total descending')
+            st.plotly_chart(fig4, use_container_width=True)
 
 
 
