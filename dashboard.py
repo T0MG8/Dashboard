@@ -949,7 +949,7 @@ if st.session_state.ingelogd:
         col3, col4 = st.columns(2)
 
         with col3:
-            st.header("Dyslexiezorg (Gemeente)")
+            st.header("Dyslexiezorg")
             fig3 = px.bar(
                 tarieven_gemeente_opbrengst_sorted,
                 x='Gemeente',
@@ -973,7 +973,7 @@ if st.session_state.ingelogd:
             st.plotly_chart(fig3, use_container_width=True)
 
         with col4:
-            st.header("BlinkUit (Gemeente)")
+            st.header("BlinkUit")
             fig4 = px.bar(
                 overige_gemeente_opbrengst_sorted,
                 x='Gemeente',
