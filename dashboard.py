@@ -232,7 +232,7 @@ if st.session_state.ingelogd:
                 markers=True
             )
             fig_dys.update_layout(
-                title="Facturen Dyslexiezorg",
+                title="Aantal verstuurde facturen per maand (Dyslexiezorg)",
                 xaxis=dict(
                     tickmode='array',
                     tickvals=list(range(1, 13)),
@@ -254,7 +254,7 @@ if st.session_state.ingelogd:
                 markers=True
             )
             fig_blink.update_layout(
-                title="Facturen BlinkUit",
+                title="Aantal verstuurde facturen per maand (BlinkUit)",
                 xaxis=dict(
                     tickmode='array',
                     tickvals=list(range(1, 13)),
@@ -272,47 +272,104 @@ if st.session_state.ingelogd:
 
     #-------------------------------------------------------------------------------------------------------------------------------------------
 
-        maandelijkse_totals = []
+        col1, col2 = st.columns(2)
 
-        # Voor elke dataframe, jaar en duur groeperen
-        for year, df in dataframes.items():
-            df['datum'] = pd.to_datetime(df['datum'], format='%d-%m-%Y')
-            df['maand'] = df['datum'].dt.month
-            df['jaar'] = df['datum'].dt.year  
+        # ------------------ MINUTEN BlinkUit (col1) ------------------
+        with col2:
+            maandelijkse_totals_blinkuit = []
 
-            # Filter op de geselecteerde maanden (gebruik maandnummers)
-            filtered_df = df[(df['maand'] >= start_month) & (df['maand'] <= end_month)]
+            for year, df in dataframes.items():
+                df = df.copy()
+                df['datum'] = pd.to_datetime(df['datum'], format='%d-%m-%Y')
+                df['maand'] = df['datum'].dt.month
+                df['jaar'] = df['datum'].dt.year
 
-            # Groepeer per jaar en maand en sommeer de duur
-            maand_duur = filtered_df.groupby(['jaar', 'maand'])['duur'].sum().reset_index()
+                # Filter op maanden en op afspraaksoort 'Z HB' (BlinkUit)
+                filtered_df = df[
+                    (df['maand'] >= start_month) & 
+                    (df['maand'] <= end_month) & 
+                    (df['afspraaksoort'].str.startswith('Z HB'))
+                ]
 
-            maandelijkse_totals.append(maand_duur)
+                # Groepeer per jaar en maand en sommeer duur
+                maand_duur = filtered_df.groupby(['jaar', 'maand'])['duur'].sum().reset_index()
 
-        # Combineer de maandelijkse totals van alle jaren in één dataframe
-        maandelijkse_totals_df = pd.concat(maandelijkse_totals)
+                maandelijkse_totals_blinkuit.append(maand_duur)
 
-        # Plot met Plotly Express
-        fig2 = px.line(maandelijkse_totals_df, 
-                    x='maand', 
-                    y='duur', 
-                    color='jaar', 
-                    markers=True)
+            # Combineer
+            maandelijkse_totals_blinkuit_df = pd.concat(maandelijkse_totals_blinkuit)
 
-        fig2.update_layout(
-            title="Aantal gehouden minuten per maand",
-            xaxis=dict(
-                tickmode='array', 
-                tickvals=list(range(1, 13)), 
-                ticktext=maanden,  # Maandnamen tonen in plaats van nummers
-            ),
-            yaxis_title="Aantal minuten",
-            legend_title="Jaar",
-            xaxis_showgrid=True,
-            yaxis_showgrid=True
-        )
+            fig_blinkuit = px.line(
+                maandelijkse_totals_blinkuit_df,
+                x='maand',
+                y='duur',
+                color='jaar',
+                markers=True,
+                title="Aantal gehouden minuten per maand (BlinkUit)"
+            )
 
-        # Streamlit plot
-        st.plotly_chart(fig2)
+            fig_blinkuit.update_layout(
+                xaxis=dict(
+                    tickmode='array',
+                    tickvals=list(range(1, 13)),
+                    ticktext=maanden
+                ),
+                yaxis_title="Aantal minuten",
+                legend_title="Jaar",
+                xaxis_showgrid=True,
+                yaxis_showgrid=True,
+                height=500
+            )
+
+            st.plotly_chart(fig_blinkuit, use_container_width=True, key="minuten_blinkuit")
+
+        # ------------------ MINUTEN Dyslexiezorg (col2) ------------------
+        with col1:
+            maandelijkse_totals_dyslexie = []
+
+            for year, df in dataframes.items():
+                df = df.copy()
+                df['datum'] = pd.to_datetime(df['datum'], format='%d-%m-%Y')
+                df['maand'] = df['datum'].dt.month
+                df['jaar'] = df['datum'].dt.year
+
+                # Filter op maanden en op afspraaksoort NIET 'Z HB' (Dyslexiezorg)
+                filtered_df = df[
+                    (df['maand'] >= start_month) & 
+                    (df['maand'] <= end_month) & 
+                    (~df['afspraaksoort'].str.startswith('Z HB'))
+                ]
+
+                maand_duur = filtered_df.groupby(['jaar', 'maand'])['duur'].sum().reset_index()
+
+                maandelijkse_totals_dyslexie.append(maand_duur)
+
+            maandelijkse_totals_dyslexie_df = pd.concat(maandelijkse_totals_dyslexie)
+
+            fig_dyslexie = px.line(
+                maandelijkse_totals_dyslexie_df,
+                x='maand',
+                y='duur',
+                color='jaar',
+                markers=True,
+                title="Aantal gehouden minuten per maand (Dyslexiezorg)"
+            )
+
+            fig_dyslexie.update_layout(
+                xaxis=dict(
+                    tickmode='array',
+                    tickvals=list(range(1, 13)),
+                    ticktext=maanden
+                ),
+                yaxis_title="Aantal minuten",
+                legend_title="Jaar",
+                xaxis_showgrid=True,
+                yaxis_showgrid=True,
+                height=500
+            )
+
+            st.plotly_chart(fig_dyslexie, use_container_width=True, key="minuten_dyslexie")
+
 
     #-------------------------------------------------------------------------------------------------------------------------------------------
 
