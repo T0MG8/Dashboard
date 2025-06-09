@@ -208,13 +208,13 @@ if st.session_state.ingelogd:
         filtered_factuur = factuur[(factuur['maand'] >= start_month) & (factuur['maand'] <= end_month)]
 
         # Set met dyslexiezorg-codes
-        tarieven_codes = {
-            "54R21", "54R22", "54001", "54019", "54DD1", "54BD1", "20001", "20002", "54018"
+        dys_codes = {
+            "20001", "20002", "45A05", "45A69", "54001", "54004", "54018", "54019", "54BD1", "54DD1", "54EED", "54H01", "54H02", "54R21", "54R22"
         }
 
         # Opsplitsen in dyslexiezorg en blinkuit
-        factuur_dyslexie = filtered_factuur[filtered_factuur['declaratiecode'].isin(tarieven_codes)]
-        factuur_blinkuit = filtered_factuur[~filtered_factuur['declaratiecode'].isin(tarieven_codes)]
+        factuur_dyslexie = filtered_factuur[filtered_factuur['declaratiecode'].isin(dys_codes)]
+        factuur_blinkuit = filtered_factuur[~filtered_factuur['declaratiecode'].isin(dys_codes)]
 
         # Groeperen per jaar en maand
         totals_dyslexie = factuur_dyslexie.groupby(['jaar', 'maand'])['toegewezen_bedrag'].sum().reset_index()
@@ -844,13 +844,8 @@ if st.session_state.ingelogd:
 
         facturen_vorige_maand['regio'] = facturen_vorige_maand['debiteur'].apply(gemeente_naar_regio)
 
-        # --- Categoriseren ---
-        tarieven_codes = {
-            "54R21", "54R22", "54001", "54019", "54DD1", "54BD1", "20001", "20002", "54018"
-        }
-
         facturen_vorige_maand['categorie'] = facturen_vorige_maand['declaratiecode'].apply(
-            lambda x: 'tarieven' if str(x) in tarieven_codes else 'overige'
+            lambda x: 'tarieven' if str(x) in dys_codes else 'overige'
         )
 
         # --- Groeperen en sorteren ---
